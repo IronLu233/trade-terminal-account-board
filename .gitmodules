@@ -1,0 +1,3 @@
+[submodule "submodule/bull-board"]
+	path = submodule/bull-board
+	url = https://github.com/IronLu233/bull-board.git
