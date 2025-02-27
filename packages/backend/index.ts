@@ -1,96 +1,90 @@
-import { createBullBoard } from '@bull-board/api';
-import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
-import { FastifyAdapter } from '@bull-board/fastify';
-import { Queue as QueueMQ, Worker, type RedisOptions } from 'bullmq';
-import fastify from 'fastify';
+import { createBullBoard } from "@bull-board/api";
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
+import { FastifyAdapter } from "@bull-board/fastify";
+import { Queue as QueueMQ } from "bullmq";
+import fastify from "fastify";
+import { setupBullMQProcessor } from "./processor";
+import { redisOptions } from "./redis";
+import {
+  type ZodTypeProvider,
+  jsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
+import { z } from "zod";
+import ACCOUNTS from "./accounts.json";
 
-const sleep = (t: number) => new Promise((resolve) => setTimeout(resolve, t * 1000));
+const createQueueMQ = (name: string) =>
+  new QueueMQ(name, { connection: redisOptions });
 
-
-
-const redisOptions: RedisOptions = {
-  port: process.env.REDIS_PORT || 6379,
-  host: process.env.REDIS_HOST || 'localhost',
-  password: process.env.REDIS_PASS || '',
-};
-
-const createQueueMQ = (name: string) => new QueueMQ(name, { connection: redisOptions });
-
-function setupBullMQProcessor(queueName: string) {
-  new Worker(
-    queueName,
-    async (job) => {
-      for (let i = 0; i <= 100; i++) {
-        await sleep(1000);
-        await job.updateProgress(i);
-        await job.log(`Processing job at interval ${i}`);
-
-        if (Math.random() * 200 < 1) throw new Error(`Random error ${i}`);
-      }
-
-      return { jobId: `This is the return value of job (${job.id})` };
-    },
-    { connection: redisOptions }
-  );
-}
-
-function readQueuesFromEnv() {
-  const qStr = process.env.BULL_QUEUE_NAMES_CSV || 'Example';
+function readQueuesFromConfig() {
   try {
-    const qs = qStr.split(',');
-    return qs.map((q) => q.trim());
+    return ACCOUNTS.map((q) => q.trim());
   } catch (e) {
     return [];
   }
 }
 
 const run = async () => {
-  const queues = readQueuesFromEnv().map((q) => createQueueMQ(q));
+  const queues = new Map(
+    readQueuesFromConfig().map((q) => [q, createQueueMQ(q)])
+  );
 
   queues.forEach((q) => {
     setupBullMQProcessor(q.name);
   });
 
-  const app = fastify();
+  const app = fastify().withTypeProvider<ZodTypeProvider>();
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+
+  await app.register(import("@fastify/swagger"), {
+    transform: jsonSchemaTransform,
+  });
+  await app.register(import("@fastify/swagger-ui"), {
+    routePrefix: "/documentation",
+    uiConfig: {
+      docExpansion: "full",
+      deepLinking: false,
+    },
+    uiHooks: {
+      onRequest: function (request, reply, next) {
+        next();
+      },
+      preHandler: function (request, reply, next) {
+        next();
+      },
+    },
+    staticCSP: true,
+    transformStaticCSP: (header) => header,
+    transformSpecification: (swaggerObject, request, reply) => {
+      return swaggerObject;
+    },
+    transformSpecificationClone: true,
+  });
 
   const serverAdapter = new FastifyAdapter();
 
   createBullBoard({
-    queues: queues.map((q) => new BullMQAdapter(q)),
+    queues: Array.from(queues.values().map((q) => new BullMQAdapter(q))),
     serverAdapter,
-    // options: {
-    //     uiBasePath: '/ui',
-    //     uiConfig: {}
-    // }
+    options: {
+      uiConfig: {
+        boardTitle: "策略管理中心",
+      },
+    },
   });
 
-  serverAdapter.setBasePath('/ui');
-  app.register(serverAdapter.registerPlugin(), { prefix: '/ui', basePath: '/' });
-
-  app.get('/add', (req: any, reply) => {
-    const opts = req.query.opts || {};
-
-    if (opts.delay) {
-      opts.delay = +opts.delay * 1000; // delay must be a number
-    }
-
-    queues.forEach((queue) => queue.add('Add', { title: req.query.title }, opts));
-
-    reply.send({
-      ok: true,
-    });
+  serverAdapter.setBasePath("/ui");
+  app.register(serverAdapter.registerPlugin(), {
+    prefix: "/ui",
+    basePath: "/",
   });
 
   const port = 3000;
-  await app.listen({ host: '0.0.0.0', port });
+  await app.listen({ host: "0.0.0.0", port });
   // eslint-disable-next-line no-console
   console.log(`For the UI, open http://localhost:${port}/ui`);
-  console.log('Make sure Redis is configured in env variables. See .env.example');
-  console.log('To populate the queue, run:');
-  console.log(`  curl http://localhost:${port}/add?title=Example`);
-  console.log('To populate the queue with custom options (opts), run:');
-  console.log(`  curl http://localhost:${port}/add?title=Test&opts[delay]=9`);
-  console.log(`*** If you launched from docker-compose use port 3333 instead of 3000 ***`);
 };
 
 run().catch((e) => {

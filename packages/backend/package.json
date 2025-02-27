@@ -16,7 +16,12 @@
   "dependencies": {
     "@bull-board/api": "^6.7.9",
     "@bull-board/fastify": "^6.7.9",
+    "@fastify/swagger": "^9.4.2",
+    "@fastify/swagger-ui": "^5.2.2",
     "bullmq": "^5.41.5",
-    "fastify": "^5.2.1"
+    "fastify": "^5.2.1",
+    "fastify-type-provider-zod": "^4.0.2",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
   }
 }
