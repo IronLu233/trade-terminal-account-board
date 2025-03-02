@@ -1,7 +1,7 @@
 {
   "name": "bull-dashboard",
   "workspaces": [
-    "packages/*"
+    "apps/*"
   ],
   "private": true,
   "devDependencies": {

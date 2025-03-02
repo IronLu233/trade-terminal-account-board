@@ -11,8 +11,8 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
-import { z } from "zod";
 import ACCOUNTS from "./accounts.json";
+import path from "path";
 
 const createQueueMQ = (name: string) =>
   new QueueMQ(name, { connection: redisOptions });
@@ -69,15 +69,16 @@ const run = async () => {
     queues: Array.from(queues.values().map((q) => new BullMQAdapter(q))),
     serverAdapter,
     options: {
+      uiBasePath: path.dirname(require.resolve("frontend/package.json")),
       uiConfig: {
         boardTitle: "策略管理中心",
       },
     },
   });
 
-  serverAdapter.setBasePath("/ui");
+  serverAdapter.setBasePath("/");
   app.register(serverAdapter.registerPlugin(), {
-    prefix: "/ui",
+    prefix: "/",
     basePath: "/",
   });
 
