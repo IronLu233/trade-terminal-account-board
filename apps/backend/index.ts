@@ -85,7 +85,7 @@ const run = async () => {
   const port = 3000;
   await app.listen({ host: "0.0.0.0", port });
   // eslint-disable-next-line no-console
-  console.log(`For the UI, open http://localhost:${port}/ui`);
+  console.log(`For the UI, open http://localhost:${port}`);
 };
 
 run().catch((e) => {

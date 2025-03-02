@@ -11,16 +11,16 @@ interface QueueCardProps {
 
 export default function QueueCard({ queue }: QueueCardProps) {
   const { queueName, running, successful, failed, lastUpdated } = queue;
-  
+
   const total = running + successful + failed;
   const successRate = total > 0 ? (successful / total) * 100 : 100;
-  
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-muted/50 pb-2">
         <CardTitle className="text-lg font-medium">
-          <Link 
-            to={`/queues?queue=${queueName}`} 
+          <Link
+            to={`/queues?queue=${queueName}`}
             className="hover:underline text-primary"
           >
             {queueName}
@@ -29,7 +29,7 @@ export default function QueueCard({ queue }: QueueCardProps) {
       </CardHeader>
       <CardContent className="pt-4">
         <div className="grid grid-cols-3 gap-4">
-          <Link 
+          <Link
             to={`/queues?queue=${queueName}&status=running`}
             className="flex flex-col items-center group cursor-pointer"
           >
@@ -37,7 +37,7 @@ export default function QueueCard({ queue }: QueueCardProps) {
             <span className="text-xl font-semibold group-hover:text-primary transition-colors">{running}</span>
             <span className="text-xs text-muted-foreground">Running</span>
           </Link>
-          <Link 
+          <Link
             to={`/queues?queue=${queueName}&status=completed`}
             className="flex flex-col items-center group cursor-pointer"
           >
@@ -45,7 +45,7 @@ export default function QueueCard({ queue }: QueueCardProps) {
             <span className="text-xl font-semibold group-hover:text-primary transition-colors">{successful}</span>
             <span className="text-xs text-muted-foreground">Successful</span>
           </Link>
-          <Link 
+          <Link
             to={`/queues?queue=${queueName}&status=failed`}
             className="flex flex-col items-center group cursor-pointer"
           >
@@ -54,7 +54,7 @@ export default function QueueCard({ queue }: QueueCardProps) {
             <span className="text-xs text-muted-foreground">Failed</span>
           </Link>
         </div>
-        
+
         <div className="mt-4 text-xs text-muted-foreground">
           Last updated: {formatDistanceToNow(lastUpdated)} ago
         </div>

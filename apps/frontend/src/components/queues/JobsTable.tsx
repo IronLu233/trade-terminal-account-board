@@ -64,8 +64,8 @@ export default function JobsTable({ jobs, queueName, initialStatus = "all" }: Jo
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="relative flex-1">
+      <div className="flex flex-col lg:flex-row gap-4 justify-between">
+        <div className="relative flex-1 max-w-3xl">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search jobs..."
@@ -104,72 +104,86 @@ export default function JobsTable({ jobs, queueName, initialStatus = "all" }: Jo
       </div>
 
       <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Job Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Queue</TableHead>
-              <TableHead className="hidden md:table-cell">Created</TableHead>
-              <TableHead className="hidden md:table-cell">Duration</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredJobs.length === 0 ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No jobs found.
-                </TableCell>
+                <TableHead className="w-[300px]">Job Name</TableHead>
+                <TableHead className="w-[120px]">Status</TableHead>
+                <TableHead className="w-[200px]">Queue</TableHead>
+                <TableHead className="w-[200px]">Created</TableHead>
+                <TableHead className="w-[150px]">Duration</TableHead>
+                <TableHead className="w-[200px]">Parameters</TableHead>
               </TableRow>
-            ) : (
-              filteredJobs.map((job) => (
-                <TableRow key={job.id}>
-                  <TableCell className="font-medium">
-                    <Link 
-                      to={`/queues/jobs/${job.id}`} 
-                      className="hover:underline text-primary"
-                    >
-                      {job.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <JobStatusBadge status={job.status} />
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {job.queueName}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">
-                        {format(job.createdAt, "MMM d, yyyy")}
-                      </span>
-                      <span className="text-xs">
-                        {formatDistanceToNow(job.createdAt)} ago
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {job.status === "running" ? (
-                      <span className="text-xs text-muted-foreground">
-                        Running for{" "}
-                        {formatDistanceToNow(job.createdAt, { addSuffix: false })}
-                      </span>
-                    ) : job.duration ? (
-                      <span className="text-xs text-muted-foreground">
-                        {(job.duration / 1000).toFixed(1)}s
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
+            </TableHeader>
+            <TableBody>
+              {filteredJobs.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="h-24 text-center text-muted-foreground"
+                  >
+                    No jobs found.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredJobs.map((job) => (
+                  <TableRow key={job.id}>
+                    <TableCell className="font-medium">
+                      <Link
+                        to={`/queues/jobs/${job.id}`}
+                        className="hover:underline text-primary"
+                      >
+                        {job.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <JobStatusBadge status={job.status} />
+                    </TableCell>
+                    <TableCell>
+                      {job.queueName}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground">
+                          {format(job.createdAt, "MMM d, yyyy")}
+                        </span>
+                        <span className="text-xs">
+                          {formatDistanceToNow(job.createdAt)} ago
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {job.status === "running" ? (
+                        <span className="text-xs text-muted-foreground">
+                          Running for{" "}
+                          {formatDistanceToNow(job.createdAt, { addSuffix: false })}
+                        </span>
+                      ) : job.duration ? (
+                        <span className="text-xs text-muted-foreground">
+                          {(job.duration / 1000).toFixed(1)}s
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-[200px] truncate">
+                        {job.parameters ? (
+                          <span className="text-xs text-muted-foreground">
+                            {Object.keys(job.parameters).join(', ')}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );

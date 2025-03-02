@@ -59,11 +59,11 @@ interface TemplateDialogProps {
   onSuccess?: (template: FormValues) => void;
 }
 
-export default function TemplateDialog({ 
-  template, 
-  mode = "create", 
-  trigger, 
-  onSuccess 
+export default function TemplateDialog({
+  template,
+  mode = "create",
+  trigger,
+  onSuccess
 }: TemplateDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,24 +114,24 @@ export default function TemplateDialog({
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+
       // Log the form data (in a real app, this would be sent to an API)
       console.log("Form submitted:", data);
-      
+
       // Call onSuccess callback if provided
       if (onSuccess) {
         onSuccess(data);
       }
-      
+
       // Show success toast
       toast({
         title: isEditMode ? "Template updated" : "Template created",
-        description: isEditMode 
+        description: isEditMode
           ? `Template "${data.name}" has been updated successfully.`
           : `Template "${data.name}" has been created successfully.`,
         duration: 3000,
       });
-      
+
       // Reset form and close dialog
       if (!isEditMode) {
         form.reset();
@@ -171,7 +171,7 @@ export default function TemplateDialog({
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Edit Template" : "Create New Template"}</DialogTitle>
           <DialogDescription>
-            {isEditMode 
+            {isEditMode
               ? "Modify the template details. Click save when you're done."
               : "Add a new message queue template. Click add when you're done."}
           </DialogDescription>
@@ -185,9 +185,9 @@ export default function TemplateDialog({
                 <FormItem>
                   <FormLabel>Template Name</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Enter template name" 
-                      {...field} 
+                    <Input
+                      placeholder="Enter template name"
+                      {...field}
                       disabled={isSubmitting}
                     />
                   </FormControl>
@@ -198,7 +198,7 @@ export default function TemplateDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -206,9 +206,9 @@ export default function TemplateDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Enter template description" 
-                      {...field} 
+                    <Input
+                      placeholder="Enter template description"
+                      {...field}
                       disabled={isSubmitting}
                     />
                   </FormControl>
@@ -219,15 +219,15 @@ export default function TemplateDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="queueName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Queue Name</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
+                  <Select
+                    onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
                     disabled={isSubmitting}
@@ -249,15 +249,15 @@ export default function TemplateDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="script"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Script</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
+                  <Select
+                    onValueChange={field.onChange}
                     defaultValue={field.value}
                     value={field.value}
                     disabled={isSubmitting}
@@ -279,7 +279,7 @@ export default function TemplateDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="action"
@@ -287,9 +287,9 @@ export default function TemplateDialog({
                 <FormItem>
                   <FormLabel>Action (Optional)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Enter an action" 
-                      {...field} 
+                    <Input
+                      placeholder="Enter an action"
+                      {...field}
                       disabled={isSubmitting}
                     />
                   </FormControl>
@@ -300,7 +300,7 @@ export default function TemplateDialog({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="executionPath"
@@ -308,9 +308,9 @@ export default function TemplateDialog({
                 <FormItem>
                   <FormLabel>Execution Path (Optional)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Enter execution path" 
-                      {...field} 
+                    <Input
+                      placeholder="Enter execution path"
+                      {...field}
                       disabled={isSubmitting}
                     />
                   </FormControl>
@@ -321,19 +321,19 @@ export default function TemplateDialog({
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setOpen(false)}
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting 
-                  ? (isEditMode ? "Saving..." : "Adding...") 
+                {isSubmitting
+                  ? (isEditMode ? "Saving..." : "Adding...")
                   : (isEditMode ? "Save Changes" : "Add Template")}
               </Button>
             </DialogFooter>

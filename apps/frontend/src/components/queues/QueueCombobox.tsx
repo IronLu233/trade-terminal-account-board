@@ -63,7 +63,7 @@ export default function QueueCombobox({ queues, value, onChange }: QueueCombobox
       return;
     }
 
-    const filtered = queues.filter(queue => 
+    const filtered = queues.filter(queue =>
       queue.queueName.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredQueues(filtered);
@@ -84,20 +84,20 @@ export default function QueueCombobox({ queues, value, onChange }: QueueCombobox
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between md:w-[300px]"
+          className="w-full justify-between md:w-[300px] lg:w-[400px]"
         >
           {getSelectedQueueName()}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0 md:w-[300px]">
+      <PopoverContent className="w-full p-0 md:w-[300px] lg:w-[400px]">
         <Command shouldFilter={false}>
-          <CommandInput 
-            placeholder="Search queues..." 
+          <CommandInput
+            placeholder="Search queues..."
             value={searchTerm}
             onValueChange={setSearchTerm}
           />
-          <CommandList>
+          <CommandList className="max-h-[400px]">
             <CommandEmpty>No queue found.</CommandEmpty>
             <CommandGroup>
               <CommandItem
@@ -119,12 +119,12 @@ export default function QueueCombobox({ queues, value, onChange }: QueueCombobox
 
             {Object.entries(queueGroups).map(([groupName, groupQueues]) => {
               // Only show groups that have queues matching the search term
-              const matchingQueues = groupQueues.filter(queue => 
+              const matchingQueues = groupQueues.filter(queue =>
                 queue.queueName.toLowerCase().includes(searchTerm.toLowerCase())
               );
-              
+
               if (matchingQueues.length === 0) return null;
-              
+
               return (
                 <CommandGroup key={groupName} heading={groupName}>
                   {matchingQueues.map(queue => (

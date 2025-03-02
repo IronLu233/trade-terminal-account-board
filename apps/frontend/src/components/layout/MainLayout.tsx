@@ -41,13 +41,15 @@ export default function MainLayout() {
         </Sheet>
       )}
 
-      {/* Main Content */}
+      {/* Main Content - Optimized for ultrawide displays */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 items-center justify-end px-6 border-b">
           {/* Theme toggle removed */}
         </header>
         <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+          <div className="mx-auto max-w-[3000px]">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

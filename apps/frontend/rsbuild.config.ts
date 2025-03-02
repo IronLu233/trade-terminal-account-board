@@ -3,16 +3,26 @@ import { pluginReact } from '@rsbuild/plugin-react';
 
 export default defineConfig({
   plugins: [pluginReact()],
-  dev: {
-    writeToDisk: true,
-    client: {
-      host: '127.0.0.1',
-      port: 9000,
+  source: {
+    entry: {
+      index: './src/main.tsx',
     },
   },
   tools: {
     htmlPlugin: {
       filename: 'index.ejs',
+    },
+  },
+  dev: {
+    writeToDisk: true,
+    client: {
+      port: 9000,
+    },
+  },
+  server: {
+    port: 9000,
+    proxy: {
+      '*': 'http://127.0.0.1:3000',
     },
   },
 });

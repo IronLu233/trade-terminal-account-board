@@ -1,26 +1,26 @@
 import { useState } from "react";
 import { Template } from "@/types/queue";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -48,7 +48,7 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  const filteredTemplates = templates.filter(template => 
+  const filteredTemplates = templates.filter(template =>
     template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     template.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -58,13 +58,13 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
   };
 
   const handleEditSuccess = (updatedTemplate: any, id: string) => {
-    setTemplates(templates.map(template => 
-      template.id === id 
-        ? { 
-            ...template, 
-            ...updatedTemplate, 
-            updatedAt: new Date() 
-          } 
+    setTemplates(templates.map(template =>
+      template.id === id
+        ? {
+            ...template,
+            ...updatedTemplate,
+            updatedAt: new Date()
+          }
         : template
     ));
   };
@@ -81,7 +81,7 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
       action: newTemplate.action,
       executionPath: newTemplate.executionPath
     };
-    
+
     setTemplates([...templates, template]);
   };
 
@@ -104,7 +104,7 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
               Manage your message queue templates
             </CardDescription>
           </div>
-          <TemplateDialog 
+          <TemplateDialog
             mode="create"
             onSuccess={handleCreateSuccess}
           />
@@ -112,7 +112,7 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
       </CardHeader>
       <CardContent>
         <div className="flex items-center mb-4">
-          <div className="relative flex-1">
+          <div className="relative flex-1 max-w-3xl">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search templates..."
@@ -122,100 +122,106 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
             />
           </div>
         </div>
-        
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="hidden md:table-cell">Created</TableHead>
-                <TableHead className="hidden md:table-cell">Updated</TableHead>
-                <TableHead className="w-[120px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTemplates.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                    No templates found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredTemplates.map((template) => (
-                  <TableRow key={template.id}>
-                    <TableCell className="font-medium">{template.name}</TableCell>
-                    <TableCell className="hidden md:table-cell">{template.description}</TableCell>
-                    <TableCell className="hidden md:table-cell">{format(template.createdAt, 'MMM d, yyyy')}</TableCell>
-                    <TableCell className="hidden md:table-cell">{format(template.updatedAt, 'MMM d, yyyy')}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="default" 
-                              size="icon" 
-                              className="h-8 w-8 bg-primary hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                            >
-                              <Play className="h-4 w-4" />
-                              <span className="sr-only">Run template</span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Run Template</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to run this template?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleRunTemplate(template)}
-                              >
-                                Run
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
 
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <TemplateDialog
-                                mode="edit"
-                                template={template}
-                                trigger={
-                                  <Button variant="ghost" className="w-full justify-start px-2">
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit
-                                  </Button>
-                                }
-                                onSuccess={(updatedTemplate) => handleEditSuccess(updatedTemplate, template.id)}
-                              />
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => handleDelete(template.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+        <div className="rounded-md border">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[300px]">Name</TableHead>
+                  <TableHead className="w-[400px]">Description</TableHead>
+                  <TableHead className="w-[200px]">Created</TableHead>
+                  <TableHead className="w-[200px]">Updated</TableHead>
+                  <TableHead className="w-[120px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTemplates.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                      No templates found
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredTemplates.map((template) => (
+                    <TableRow key={template.id}>
+                      <TableCell className="font-medium">{template.name}</TableCell>
+                      <TableCell>
+                        <div className="max-w-[400px] truncate">
+                          {template.description}
+                        </div>
+                      </TableCell>
+                      <TableCell>{format(template.createdAt, 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{format(template.updatedAt, 'MMM d, yyyy')}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="default"
+                                size="icon"
+                                className="h-8 w-8 bg-primary hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              >
+                                <Play className="h-4 w-4" />
+                                <span className="sr-only">Run template</span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Run Template</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to run this template?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleRunTemplate(template)}
+                                >
+                                  Run
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <TemplateDialog
+                                  mode="edit"
+                                  template={template}
+                                  trigger={
+                                    <Button variant="ghost" className="w-full justify-start px-2">
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </Button>
+                                  }
+                                  onSuccess={(updatedTemplate) => handleEditSuccess(updatedTemplate, template.id)}
+                                />
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDelete(template.id)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </CardContent>
     </Card>
