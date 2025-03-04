@@ -1,97 +1,81 @@
 import { useState } from "react";
 import { Template } from "@/types/queue";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { Edit, MoreHorizontal, Search, Trash2, Play } from "lucide-react";
 import TemplateDialog from "./TemplateDialog";
+import TemplateRunDialog from "./TemplateRunDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateTemplate, useUpdateTemplate, useDeleteTemplate, TemplatePayload } from "@/hooks/useTemplates";
 
 interface TemplateListProps {
   templates: Template[];
 }
 
-export default function TemplateList({ templates: initialTemplates }: TemplateListProps) {
-  const [templates, setTemplates] = useState<Template[]>(initialTemplates);
+export default function TemplateList({ templates }: TemplateListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
+  // Mutations
+  const createMutation = useCreateTemplate();
+  const updateMutation = useUpdateTemplate();
+  const deleteMutation = useDeleteTemplate();
+
   const filteredTemplates = templates.filter(template =>
-    template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    template.description.toLowerCase().includes(searchQuery.toLowerCase())
+    template.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDelete = (id: string) => {
-    setTemplates(templates.filter(template => template.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMutation.mutateAsync(id);
+      toast({
+        title: "Template deleted",
+        description: "The template has been deleted successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete template",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEditSuccess = (updatedTemplate: any, id: string) => {
-    setTemplates(templates.map(template =>
-      template.id === id
-        ? {
-            ...template,
-            ...updatedTemplate,
-            updatedAt: new Date()
-          }
-        : template
-    ));
+  const handleEditSuccess = async (updatedTemplate: TemplatePayload, id: string) => {
+    try {
+      await updateMutation.mutateAsync({ id, ...updatedTemplate });
+      toast({
+        title: "Template updated",
+        description: "The template has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update template",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleCreateSuccess = (newTemplate: any) => {
-    const template: Template = {
-      id: `temp-${Date.now()}`, // In a real app, this would come from the backend
-      name: newTemplate.name,
-      description: newTemplate.description || "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      queueName: newTemplate.queueName,
-      script: newTemplate.script,
-      action: newTemplate.action,
-      executionPath: newTemplate.executionPath
-    };
-
-    setTemplates([...templates, template]);
-  };
-
-  const handleRunTemplate = (template: Template) => {
-    // In a real app, this would make an API call to run the template
-    toast({
-      title: "Template Executed",
-      description: `Template "${template.name}" has been queued for execution.`,
-      duration: 3000,
-    });
+  const handleCreateSuccess = async (newTemplate: TemplatePayload) => {
+    try {
+      await createMutation.mutateAsync(newTemplate);
+      toast({
+        title: "Template created",
+        description: "The new template has been created successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create template",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -107,6 +91,7 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
           <TemplateDialog
             mode="create"
             onSuccess={handleCreateSuccess}
+            isSubmitting={createMutation.isPending}
           />
         </div>
       </CardHeader>
@@ -129,7 +114,6 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[300px]">Name</TableHead>
-                  <TableHead className="w-[400px]">Description</TableHead>
                   <TableHead className="w-[200px]">Created</TableHead>
                   <TableHead className="w-[200px]">Updated</TableHead>
                   <TableHead className="w-[120px]"></TableHead>
@@ -146,43 +130,19 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
                   filteredTemplates.map((template) => (
                     <TableRow key={template.id}>
                       <TableCell className="font-medium">{template.name}</TableCell>
-                      <TableCell>
-                        <div className="max-w-[400px] truncate">
-                          {template.description}
-                        </div>
-                      </TableCell>
                       <TableCell>{format(template.createdAt, 'MMM d, yyyy')}</TableCell>
                       <TableCell>{format(template.updatedAt, 'MMM d, yyyy')}</TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-end gap-2">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="default"
-                                size="icon"
-                                className="h-8 w-8 bg-primary hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                              >
+                        <div className="flex items-center justify-end">
+                          <TemplateRunDialog
+                            template={template}
+                            trigger={
+                              <Button variant="ghost" size="icon" className="h-8 w-8 p-0 mr-1">
                                 <Play className="h-4 w-4" />
                                 <span className="sr-only">Run template</span>
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Run Template</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to run this template?
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleRunTemplate(template)}
-                                >
-                                  Run
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                            }
+                          />
 
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -203,15 +163,35 @@ export default function TemplateList({ templates: initialTemplates }: TemplateLi
                                     </Button>
                                   }
                                   onSuccess={(updatedTemplate) => handleEditSuccess(updatedTemplate, template.id)}
+                                  isSubmitting={updateMutation.isPending}
                                 />
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDelete(template.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" className="w-full justify-start px-2 text-destructive focus:text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Template</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this template? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="bg-destructive hover:bg-destructive/90"
+                                      onClick={() => handleDelete(template.id)}
+                                      disabled={deleteMutation.isPending}
+                                    >
+                                      {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

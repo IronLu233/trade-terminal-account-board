@@ -8,14 +8,19 @@ export function setupBullMQProcessor(queueName: string) {
     queueName,
     async (job) => {
       return new Promise((resolve, reject) => {
-        const { script, account, action } = job.data;
+        const { script, arguments: args, executionPath } = job.data;
 
-        const argv = [script, "--account", account];
-        if (action) {
-          argv.push("--action", action);
+        const argv = [script, "--account", job.queueName];
+        if (args) {
+          // Properly split arguments by any whitespace and filter out empty strings
+          const parsedArgs = args.match(/\S+/g) || [];
+          argv.push(...parsedArgs);
         }
+
+        console.log(argv);
+
         const child = spawn("python", argv, {
-          cwd: process.env.SCRIPT_PWD,
+          cwd: executionPath || process.env.SCRIPT_PWD,
         });
 
         let stderr = "";
@@ -27,6 +32,7 @@ export function setupBullMQProcessor(queueName: string) {
         child.stdout.on("data", (data) => {
           job.log(data);
         });
+
         child.on("close", (code) => {
           if (code === 0) {
             resolve({ completedAt: new Date() });

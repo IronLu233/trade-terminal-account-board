@@ -15,7 +15,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -30,22 +29,19 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Plus, Pencil } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { Template } from "@/types/queue";
+import { TemplatePayload } from "@/hooks/useTemplates";
+import scripts from "@/scripts.json";
 
 // Define the form schema with Zod
 const formSchema = z.object({
-  queueName: z.string({
-    required_error: "Please select a queue name",
-  }),
   script: z.string({
     required_error: "Please select a script",
   }),
   name: z.string().min(3, {
     message: "Template name must be at least 3 characters",
   }),
-  description: z.string().optional(),
-  action: z.string().optional(),
+  parameter: z.string().optional(),
   executionPath: z.string().optional(),
 });
 
@@ -56,29 +52,27 @@ interface TemplateDialogProps {
   template?: Template;
   mode: "create" | "edit";
   trigger?: React.ReactNode;
-  onSuccess?: (template: FormValues) => void;
+  onSuccess?: (template: TemplatePayload) => Promise<void>;
+  isSubmitting?: boolean;
 }
 
 export default function TemplateDialog({
   template,
   mode = "create",
   trigger,
-  onSuccess
+  onSuccess,
+  isSubmitting = false
 }: TemplateDialogProps) {
   const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
   const isEditMode = mode === "edit";
 
   // Initialize form with react-hook-form and zod resolver
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      queueName: "",
       script: "",
       name: "",
-      description: "",
-      action: "",
+      parameter: "",
       executionPath: "",
     },
   });
@@ -89,20 +83,16 @@ export default function TemplateDialog({
       // For edit mode, populate form with template data
       form.reset({
         name: template.name,
-        description: template.description || "",
-        queueName: template.queueName || "account1", // Assuming this field exists
-        script: template.script || "add_leverage_main.py", // Assuming this field exists
-        action: template.action || "",
+        script: template.script,
+        parameter: template.parameter || "",
         executionPath: template.executionPath || "",
       });
     } else if (!isEditMode) {
       // For create mode, reset to defaults
       form.reset({
-        queueName: "",
         script: "",
         name: "",
-        description: "",
-        action: "",
+        parameter: "",
         executionPath: "",
       });
     }
@@ -110,43 +100,12 @@ export default function TemplateDialog({
 
   // Handle form submission
   const onSubmit = async (data: FormValues) => {
-    setIsSubmitting(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Log the form data (in a real app, this would be sent to an API)
-      console.log("Form submitted:", data);
-
-      // Call onSuccess callback if provided
-      if (onSuccess) {
-        onSuccess(data);
-      }
-
-      // Show success toast
-      toast({
-        title: isEditMode ? "Template updated" : "Template created",
-        description: isEditMode
-          ? `Template "${data.name}" has been updated successfully.`
-          : `Template "${data.name}" has been created successfully.`,
-        duration: 3000,
-      });
-
-      // Reset form and close dialog
+    if (onSuccess) {
+      await onSuccess(data);
+      setOpen(false);
       if (!isEditMode) {
         form.reset();
       }
-      setOpen(false);
-    } catch (error) {
-      // Show error toast
-      toast({
-        title: isEditMode ? "Failed to update template" : "Failed to create template",
-        description: "There was an error. Please try again.",
-        variant: "destructive",
-        duration: 5000,
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -191,60 +150,6 @@ export default function TemplateDialog({
                       disabled={isSubmitting}
                     />
                   </FormControl>
-                  <FormDescription>
-                    A descriptive name for this template
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter template description"
-                      {...field}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Brief description of the template's purpose
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="queueName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Queue Name</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                    disabled={isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a queue" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="account1">account1</SelectItem>
-                      <SelectItem value="account2">account2</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    The queue where this template will be applied
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -268,13 +173,13 @@ export default function TemplateDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="add_leverage_main.py">add_leverage_main.py</SelectItem>
-                      <SelectItem value="execution_main_v3.py">execution_main_v3.py</SelectItem>
+                      {scripts.map((script) => (
+                        <SelectItem key={script.fileName} value={script.fileName}>
+                          {script.fileName}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    The script to execute in the queue
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -282,20 +187,18 @@ export default function TemplateDialog({
 
             <FormField
               control={form.control}
-              name="action"
+              name="parameter"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Action (Optional)</FormLabel>
+                  <FormLabel>Parameter (Optional)</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter an action"
+                      placeholder="Enter parameter"
                       {...field}
                       disabled={isSubmitting}
+                      value={field.value || ""}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Specific action to perform (optional)
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -312,11 +215,9 @@ export default function TemplateDialog({
                       placeholder="Enter execution path"
                       {...field}
                       disabled={isSubmitting}
+                      value={field.value || ""}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Custom execution path if needed
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

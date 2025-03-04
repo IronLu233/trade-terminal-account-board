@@ -18,7 +18,7 @@ export default function MainLayout() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-background w-screen">
       {/* Desktop Sidebar */}
       {!isMobile && (
         <div className="hidden md:flex md:w-64 md:flex-col">

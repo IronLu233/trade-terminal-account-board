@@ -1,5 +1,5 @@
 export type JobPayload = {
-    script: string;
-    account: string;
-    action?: string;
-}
+  script: string;
+  arguments?: string;
+  executionPath?: string;
+};

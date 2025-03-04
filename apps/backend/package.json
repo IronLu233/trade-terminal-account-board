@@ -1,5 +1,5 @@
 {
-  "name": "bull-backend",
+  "name": "backend",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -10,7 +10,7 @@
     "typescript": "^5"
   },
   "scripts": {
-    "start": "bun run index.ts",
+    "start": "NODE_ENV=production bun run index.ts",
     "dev": "bun --watch run index.ts"
   },
   "dependencies": {
@@ -19,10 +19,16 @@
     "@fastify/swagger": "^9.4.2",
     "@fastify/swagger-ui": "^5.2.2",
     "bullmq": "^5.41.5",
+    "date-fns": "^4.1.0",
     "fastify": "^5.2.1",
     "fastify-type-provider-zod": "^4.0.2",
+    "frontend": "workspace:*",
+    "os-utils": "^0.0.14",
+    "reflect-metadata": "^0.2.2",
+    "sqlite3": "^5.1.7",
+    "systeminformation": "^5.25.11",
+    "typeorm": "^0.3.20",
     "yaml": "^2.7.0",
-    "zod": "^3.24.2",
-    "frontend": "workspace:*"
+    "zod": "^3.24.2"
   }
 }

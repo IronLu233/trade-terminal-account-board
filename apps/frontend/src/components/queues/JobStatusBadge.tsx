@@ -1,10 +1,10 @@
 import { Badge } from "@/components/ui/badge";
-import { Job } from "@/types/queue";
+import { JobStatus } from "@/types/queue";
 import { CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface JobStatusBadgeProps {
-  status: Job["status"];
+  status: JobStatus;
 }
 
 export default function JobStatusBadge({ status }: JobStatusBadgeProps) {
@@ -17,7 +17,7 @@ export default function JobStatusBadge({ status }: JobStatusBadgeProps) {
           icon: CheckCircle,
           className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
         };
-      case "running":
+      case "active":
         return {
           label: "Running",
           variant: "default" as const,

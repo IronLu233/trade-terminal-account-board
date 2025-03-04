@@ -1,7 +1,6 @@
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { FastifyAdapter } from "@bull-board/fastify";
-import { Queue as QueueMQ } from "bullmq";
 import fastify from "fastify";
 import { setupBullMQProcessor } from "./processor";
 import { redisOptions } from "./redis";
@@ -12,10 +11,11 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import ACCOUNTS from "./accounts.json";
+import { initializeDatabase } from "./database/data-source";
+import templateRoutes from "./routes/templates";
+import systemInfoRoutes from "./routes/system-info";
+import { setupQueues } from "./queue";
 import path from "path";
-
-const createQueueMQ = (name: string) =>
-  new QueueMQ(name, { connection: redisOptions });
 
 function readQueuesFromConfig() {
   try {
@@ -26,9 +26,9 @@ function readQueuesFromConfig() {
 }
 
 const run = async () => {
-  const queues = new Map(
-    readQueuesFromConfig().map((q) => [q, createQueueMQ(q)])
-  );
+  // Initialize database connection
+  await initializeDatabase();
+  const queues = setupQueues(readQueuesFromConfig(), redisOptions);
 
   queues.forEach((q) => {
     setupBullMQProcessor(q.name);
@@ -47,14 +47,7 @@ const run = async () => {
       docExpansion: "full",
       deepLinking: false,
     },
-    uiHooks: {
-      onRequest: function (request, reply, next) {
-        next();
-      },
-      preHandler: function (request, reply, next) {
-        next();
-      },
-    },
+
     staticCSP: true,
     transformStaticCSP: (header) => header,
     transformSpecification: (swaggerObject, request, reply) => {
@@ -69,7 +62,10 @@ const run = async () => {
     queues: Array.from(queues.values().map((q) => new BullMQAdapter(q))),
     serverAdapter,
     options: {
-      uiBasePath: path.dirname(require.resolve("frontend/package.json")),
+      uiBasePath:
+        process.env.NODE_ENV === "production"
+          ? path.dirname(require.resolve("frontend/package.json"))
+          : undefined,
       uiConfig: {
         boardTitle: "策略管理中心",
       },
@@ -82,14 +78,16 @@ const run = async () => {
     basePath: "/",
   });
 
-  const port = 3000;
+  // Register template routes
+  app.register(templateRoutes, { prefix: "/api/templates" });
+  app.register(systemInfoRoutes, { prefix: "/api/systemInfo" });
+
+  const port = parseInt(process.env.PORT || "3000", 10);
   await app.listen({ host: "0.0.0.0", port });
-  // eslint-disable-next-line no-console
   console.log(`For the UI, open http://localhost:${port}`);
 };
 
 run().catch((e) => {
-  // eslint-disable-next-line no-console
   console.error(e);
   process.exit(1);
 });

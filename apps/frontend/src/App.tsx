@@ -4,8 +4,9 @@ import { Toaster } from '@/components/ui/toaster';
 import MainLayout from '@/components/layout/MainLayout';
 import Dashboard from '@/pages/Dashboard';
 import Templates from '@/pages/Templates';
-import Queues from '@/pages/Queues';
+import QueueList from '@/pages/QueueList';
 import JobDetails from '@/pages/JobDetails';
+import QueueDetail from './pages/QueueDetail';
 
 function App() {
   return (
@@ -13,9 +14,10 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<MainLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="queues" element={<Queues />} />
-            <Route path="queues/jobs/:jobId" element={<JobDetails />} />
+          <Route index element={<Dashboard />} />
+            <Route path="queues" element={<QueueList />} />
+            <Route path="queues/jobs/:queueName" element={<QueueDetail />} />
+            <Route path="queues/jobs/:queueName/:jobId" element={<JobDetails />} />
             <Route path="templates" element={<Templates />} />
           </Route>
         </Routes>

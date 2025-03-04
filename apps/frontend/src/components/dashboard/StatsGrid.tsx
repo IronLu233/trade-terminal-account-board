@@ -1,61 +1,30 @@
-import { useState, useEffect } from "react";
 import { QueueStats } from "@/types/queue";
 import QueueCard from "./QueueCard";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useQueueList } from "@/hooks/useQueueList";
 
-interface StatsGridProps {
-  initialQueues: QueueStats[];
-  refreshInterval?: number;
-}
-
-export default function StatsGrid({
-  initialQueues,
-  refreshInterval = 30000
-}: StatsGridProps) {
-  const [queues, setQueues] = useState<QueueStats[]>(initialQueues);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+export default function StatsGrid() {
   const { toast } = useToast();
+  const { data, isLoading, error, refetch } = useQueueList();
 
-  // Function to simulate fetching updated data
-  const refreshData = async () => {
-    setIsLoading(true);
-    try {
-      // In a real app, this would be an API call
-      // For now, we'll simulate by updating the lastUpdated and randomizing some numbers
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  if (error) {
+    toast({
+      title: "Error loading queues",
+      description: "Could not load queue statistics.",
+      variant: "destructive",
+      duration: 5000,
+    });
+  }
 
-      const updatedQueues = queues.map(queue => ({
-        ...queue,
-        running: Math.max(0, queue.running + Math.floor(Math.random() * 5) - 2),
-        successful: queue.successful + Math.floor(Math.random() * 10),
-        failed: queue.failed + (Math.random() > 0.8 ? 1 : 0),
-        lastUpdated: new Date()
-      }));
-
-      setQueues(updatedQueues);
-      setLastRefreshed(new Date());
-
-      // Removed toast notification for data refresh
-    } catch (error) {
-      toast({
-        title: "Refresh failed",
-        description: "Could not update queue statistics.",
-        variant: "destructive",
-        duration: 5000,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Set up auto-refresh
-  useEffect(() => {
-    const intervalId = setInterval(refreshData, refreshInterval);
-    return () => clearInterval(intervalId);
-  }, [queues, refreshInterval]);
+  const queueStats: QueueStats[] = (data?.queues || []).map(queue => ({
+    queueName: queue.name || '',
+    running: queue.counts?.active || 0,
+    successful: queue.counts?.completed || 0,
+    failed: queue.counts?.failed || 0,
+    lastUpdated: new Date()
+  }));
 
   return (
     <div>
@@ -64,7 +33,7 @@ export default function StatsGrid({
         <Button
           variant="outline"
           size="sm"
-          onClick={refreshData}
+          onClick={() => refetch()}
           disabled={isLoading}
           className="flex items-center gap-2"
         >
@@ -74,7 +43,7 @@ export default function StatsGrid({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6">
-        {queues.map((queue) => (
+        {queueStats.map((queue) => (
           <QueueCard key={queue.queueName} queue={queue} />
         ))}
       </div>
