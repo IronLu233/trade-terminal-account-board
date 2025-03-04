@@ -19,7 +19,7 @@ export function setupBullMQProcessor(queueName: string) {
 
         console.log(argv);
 
-        const child = spawn("python", argv, {
+        const child = spawn(process.env.PYTHON_EXEC_BIN || "python", argv, {
           cwd: executionPath || process.env.SCRIPT_PWD,
         });
 
