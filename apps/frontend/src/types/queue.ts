@@ -10,7 +10,7 @@ export interface Template {
   id: string;
   name: string;
   script: string;
-  parameter?: string;
+  arguments?: string;
   executionPath?: string;
   createdAt: Date;
   updatedAt: Date;

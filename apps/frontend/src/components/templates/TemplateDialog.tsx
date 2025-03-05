@@ -41,7 +41,7 @@ const formSchema = z.object({
   name: z.string().min(3, {
     message: "Template name must be at least 3 characters",
   }),
-  parameter: z.string().optional(),
+  arguments: z.string().optional(),
   executionPath: z.string().optional(),
 });
 
@@ -72,7 +72,7 @@ export default function TemplateDialog({
     defaultValues: {
       script: "",
       name: "",
-      parameter: "",
+      arguments: "",
       executionPath: "",
     },
   });
@@ -84,7 +84,7 @@ export default function TemplateDialog({
       form.reset({
         name: template.name,
         script: template.script,
-        parameter: template.parameter || "",
+        arguments: template.arguments || "",
         executionPath: template.executionPath || "",
       });
     } else if (!isEditMode) {
@@ -92,7 +92,7 @@ export default function TemplateDialog({
       form.reset({
         script: "",
         name: "",
-        parameter: "",
+        arguments: "",
         executionPath: "",
       });
     }
@@ -187,7 +187,7 @@ export default function TemplateDialog({
 
             <FormField
               control={form.control}
-              name="parameter"
+              name="arguments"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Parameter (Optional)</FormLabel>

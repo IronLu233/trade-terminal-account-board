@@ -25,6 +25,7 @@ const templateCreateSchema = z.object({
   script: z.string(),
   action: z.string().optional(),
   executionPath: z.string().optional(),
+  arguments: z.string().nullable(),
 });
 
 const templateUpdateSchema = templateCreateSchema.partial();
@@ -193,6 +194,7 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const formattedTime = Date.now();
+      console.log(template);
       const job = await queue.add(`👤 ${queueName} ⏱️ ${formattedTime}`, {
         script: template.script,
         arguments: template.arguments,
