@@ -22,5 +22,6 @@ export function useJobLog({ queueName, jobId }: UseJobLogParams) {
       return response.json();
     },
     enabled: !!queueName && !!jobId,
+    refetchInterval: 5_000,
   });
 }

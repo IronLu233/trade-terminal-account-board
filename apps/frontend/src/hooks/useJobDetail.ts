@@ -22,6 +22,7 @@ export const useJobDetail = (queueName: string, jobId: string) => {
         throw error;
       }
     },
+    refetchInterval: 5_000,
     enabled: !!queueName && !!jobId, // Only run the query if both parameters are provided
   });
 };

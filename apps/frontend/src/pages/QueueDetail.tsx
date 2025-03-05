@@ -50,6 +50,9 @@ import { Job, JobStatus } from "@/types/queue";
 import { RetryJobDialog } from "@/components/dialogs/RetryJobDialog";
 import { useRetryJob } from "@/hooks/useJobDetail";
 
+// Add this import at the top with other imports
+import { QueueTemplateSelector } from "@/components/QueueTemplateSelector";
+
 export default function QueueDetail() {
   const { queueName } = useParams<{ queueName: string }>();
   const navigate = useNavigate();
@@ -332,33 +335,8 @@ export default function QueueDetail() {
             </div>
 
             <div>
-              <h3 className="text-sm font-medium mb-2">Queue Stats</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Active</span>
-                  <span className="text-sm">{counts.active || 0}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Waiting</span>
-                  <span className="text-sm">{counts.waiting || 0}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Waiting Children</span>
-                  <span className="text-sm">{counts["waiting-children"] || 0}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Prioritized</span>
-                  <span className="text-sm">{counts.prioritized || 0}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Paused</span>
-                  <span className="text-sm">{counts.paused || 0}</span>
-                </div>
-              </div>
+              <h3 className="text-sm font-medium mb-2">Run Template</h3>
+              <QueueTemplateSelector queueName={queueName || ''} />
             </div>
 
             <div>
@@ -440,19 +418,19 @@ export default function QueueDetail() {
             </div>
 
             <TabsContent value="latest" className="space-y-4">
-              <JobsTable jobs={filteredJobs} queueName={queueName!} refetch={refetch} currentTab={currentTab} />
+              <JobsTable jobs={filteredJobs} queueName={queueName || ''} refetch={refetch} currentTab={currentTab} />
             </TabsContent>
 
             <TabsContent value="active" className="space-y-4">
-              <JobsTable jobs={filteredJobs} queueName={queueName!} refetch={refetch} currentTab={currentTab} />
+              <JobsTable jobs={filteredJobs} queueName={queueName || ''} refetch={refetch} currentTab={currentTab} />
             </TabsContent>
 
             <TabsContent value="completed" className="space-y-4">
-              <JobsTable jobs={filteredJobs} queueName={queueName!} refetch={refetch} currentTab={currentTab} />
+              <JobsTable jobs={filteredJobs} queueName={queueName || ''} refetch={refetch} currentTab={currentTab} />
             </TabsContent>
 
             <TabsContent value="failed" className="space-y-4">
-              <JobsTable jobs={filteredJobs} queueName={queueName!} refetch={refetch} currentTab={currentTab} />
+              <JobsTable jobs={filteredJobs} queueName={queueName || ''} refetch={refetch} currentTab={currentTab} />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -531,7 +509,6 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
           <TableRow>
             <TableHead className="w-[80px]">ID</TableHead>
             <TableHead>Name</TableHead>
-            <TableHead>Account</TableHead>
             <TableHead>Script</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Completed</TableHead>
@@ -552,7 +529,6 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
                   {job.name}
                 </Link>
               </TableCell>
-              <TableCell>{job.data?.account || "N/A"}</TableCell>
               <TableCell>{job.data?.script || "N/A"}</TableCell>
               <TableCell>{formatDate(job.timestamp)}</TableCell>
               <TableCell>

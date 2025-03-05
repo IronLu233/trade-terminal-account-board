@@ -31,12 +31,14 @@ import { useJobLog } from "@/hooks/useJobLog";
 
 // Helper function to parse log entries
 const parseLogEntry = (log: string) => {
-  // Check if log entry has timestamp format [HH:MM:SS]
-  const timestampMatch = log.match(/^\[(\d{2}:\d{2}:\d{2})\]/);
+  // Check if log entry has ISO timestamp format (e.g., 2025-03-05T07:30:06.430Z)
+  const timestampMatch = log.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)/);
 
   if (timestampMatch) {
+    const timestamp = new Date(timestampMatch[1].trim());
     return {
-      timestamp: timestampMatch[1],
+      timestamp,
+      formattedTimestamp: format(timestamp, "yy-MM-dd HH:mm:ss"),
       content: log.substring(timestampMatch[0].length).trim(),
       raw: log
     };
@@ -73,7 +75,6 @@ export default function JobDetails() {
   const { queueName, jobId } = useParams<{ queueName: string, jobId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("logs");
   const [copied, setCopied] = useState(false);
   const [logSearchQuery, setLogSearchQuery] = useState("");
   const [errorSearchQuery, setErrorSearchQuery] = useState("");
@@ -253,14 +254,6 @@ export default function JobDetails() {
 
       return true;
     });
-  };
-
-  const toggleErrorLevelFilter = (level: string) => {
-    setErrorLevelFilters(current =>
-      current.includes(level)
-        ? current.filter(l => l !== level)
-        : [...current, level]
-    );
   };
 
   const isLoading = isLoadingJob || isLoadingLogs;
@@ -568,7 +561,7 @@ export default function JobDetails() {
                           className={`mb-1 ${isError ? "text-red-500 dark:text-red-400" : ""}`}
                         >
                           {showTimestamps || !parsedLog.timestamp ? (
-                            <span>{parsedLog.raw}</span>
+                            <span>{`${parsedLog.formattedTimestamp} ${parsedLog.content}`}</span>
                           ) : (
                             <span>{parsedLog.content}</span>
                           )}

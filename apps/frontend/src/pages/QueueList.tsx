@@ -93,7 +93,6 @@ export default function QueueList() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setIsCommandOpen((open) => !open);
       }
     };
 
