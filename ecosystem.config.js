@@ -6,7 +6,7 @@ module.exports = {
     args: 'start',
     watch: false,
     env: {
-      PORT: 2703
+      PORT: 5006
     }
   }],
 
@@ -19,7 +19,7 @@ module.exports = {
       path: 'DESTINATION_PATH',
       'pre-deploy-local': '',
       'pre-deploy': 'bun run --filter "*" build',
-      'post-deploy': 'cd apps/backend && npm install && pm2 reload ecosystem.config.js --env production',
+      'post-deploy': 'cd apps/backend && bun install && pm2 reload ecosystem.config.js --env production',
       'pre-setup': ''
     }
   }
