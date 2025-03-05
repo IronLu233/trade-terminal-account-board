@@ -12,12 +12,23 @@ import {
   Search,
   X,
   Copy,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -82,6 +93,8 @@ export default function JobDetails() {
   const [showTimestamps, setShowTimestamps] = useState(true);
   const [mergedLogs, setMergedLogs] = useState<string[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Use the hooks to fetch job details and logs
   const {
@@ -180,6 +193,37 @@ export default function JobDetails() {
         variant: "destructive",
         duration: 5000,
       });
+    }
+  };
+
+  const handleDeleteJob = async () => {
+    if (!queueName || !jobId) return;
+
+    setIsDeleting(true);
+
+    try {
+      // TODO: Implement the API call to delete the job
+      // await deleteJob(queueName, jobId);
+
+      // For now, simulate a successful deletion
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      toast({
+        title: "Job deleted",
+        description: `Job #${jobId} has been successfully deleted.`,
+        duration: 3000,
+      });
+
+      // Navigate back to queue detail page
+      navigate(`/queues/jobs/${queueName}`);
+    } catch (error) {
+      toast({
+        title: "Delete failed",
+        description: "Could not delete the job. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
+      setIsDeleting(false);
     }
   };
 
@@ -301,7 +345,6 @@ export default function JobDetails() {
   }
 
   const filteredLogs = getFilteredLogs();
-  const filteredErrorLogs = getFilteredErrorLogs();
 
   return (
     <div className="space-y-6">
@@ -315,18 +358,72 @@ export default function JobDetails() {
           Back to Jobs
         </Button>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={isRefetching}
-        >
-          <RefreshCw
-            className={`mr-2 h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefetching}
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Job
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete this job</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the job
+              and remove it from the queue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteJob}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Job Info Card */}

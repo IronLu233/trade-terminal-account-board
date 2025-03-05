@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -11,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useTemplates, useRunTemplate } from "@/hooks/useTemplates";
 import { Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface QueueTemplateSelectorProps {
   queueName: string;
@@ -18,10 +18,10 @@ interface QueueTemplateSelectorProps {
 
 export function QueueTemplateSelector({ queueName }: QueueTemplateSelectorProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const navigate = useNavigate();
   const { data: templates = [], isLoading } = useTemplates();
   const runTemplateMutation = useRunTemplate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleRunTemplate = async () => {
     if (!selectedTemplateId) return;
@@ -32,15 +32,18 @@ export function QueueTemplateSelector({ queueName }: QueueTemplateSelectorProps)
         queueName,
       });
 
-      // 假设 API 返回的 result 中包含 jobId
       if (result.jobId) {
+        // Show success toast notification
         toast({
           title: "Template executed",
           description: "The template has been successfully added to the queue.",
         });
 
-        // 导航到新创建的 job 的详情页
-        navigate(`/queues/jobs/${queueName}/${result.jobId}`);
+        // Refetch queue data to update the counts
+        queryClient.invalidateQueries({ queryKey: ['queues'] });
+
+        // Reset the selected template
+        setSelectedTemplateId("");
       }
     } catch (error) {
       toast({
@@ -52,29 +55,34 @@ export function QueueTemplateSelector({ queueName }: QueueTemplateSelectorProps)
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 w-full">
       <Select
         value={selectedTemplateId}
         onValueChange={setSelectedTemplateId}
-        disabled={isLoading}
+        disabled={isLoading || runTemplateMutation.isPending}
       >
-        <SelectTrigger className="w-[250px]">
+        <SelectTrigger className="flex-grow">
           <SelectValue placeholder="Select a template" />
         </SelectTrigger>
         <SelectContent>
-          {templates.map((template) => (
-            <SelectItem key={template.id} value={template.id}>
-              {template.name}
-            </SelectItem>
-          ))}
+          {templates.length === 0 ? (
+            <div className="py-2 px-2 text-sm text-muted-foreground">No templates available</div>
+          ) : (
+            templates.map((template) => (
+              <SelectItem key={template.id} value={template.id.toString()}>
+                {template.name}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
       <Button
         size="icon"
+        className="min-w-9"
         disabled={!selectedTemplateId || runTemplateMutation.isPending}
         onClick={handleRunTemplate}
       >
-        <Play className="h-4 w-4" />
+        <Play className={`h-4 w-4 ${runTemplateMutation.isPending ? "animate-spin" : ""}`} />
       </Button>
     </div>
   );

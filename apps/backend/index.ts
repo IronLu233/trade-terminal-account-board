@@ -16,6 +16,7 @@ import templateRoutes from "./routes/templates";
 import systemInfoRoutes from "./routes/system-info";
 import { setupQueues } from "./queue";
 import path from "path";
+import fastifyView from "@fastify/view";
 
 function readQueuesFromConfig() {
   try {
@@ -58,18 +59,25 @@ const run = async () => {
 
   const serverAdapter = new FastifyAdapter();
 
+  const uiBasePath = path.dirname(require.resolve("frontend/package.json"));
+
   createBullBoard({
     queues: Array.from(queues.values().map((q) => new BullMQAdapter(q))),
     serverAdapter,
     options: {
       uiBasePath:
-        process.env.NODE_ENV === "production"
-          ? path.dirname(require.resolve("frontend/package.json"))
-          : undefined,
+        process.env.NODE_ENV === "production" ? uiBasePath : undefined,
       uiConfig: {
         boardTitle: "策略管理中心",
       },
     },
+  });
+
+  app.register(fastifyView, {
+    engine: {
+      ejs: require("ejs"),
+    },
+    root: path.join(uiBasePath, "dist"),
   });
 
   serverAdapter.setBasePath("/");
@@ -82,6 +90,22 @@ const run = async () => {
   app.register(templateRoutes, { prefix: "/api/templates" });
   app.register(systemInfoRoutes, { prefix: "/api/systemInfo" });
 
+  // Add catch-all route to handle SPA routing
+  app.setNotFoundHandler(async (request, reply) => {
+    // Only handle GET requests for the catch-all
+    if (request.method === "GET") {
+      // For API routes, we should return 404
+      if (request.url.startsWith("/api/")) {
+        return reply.code(404).send({ error: "Not found" });
+      }
+
+      // For all other routes, serve the frontend app
+      return reply.view("index.ejs", {});
+    }
+
+    // Return 404 for non-GET requests
+    return reply.code(404).send({ error: "Not found" });
+  });
   const port = parseInt(process.env.PORT || "3000", 10);
   await app.listen({ host: "0.0.0.0", port });
   console.log(`For the UI, open http://localhost:${port}`);

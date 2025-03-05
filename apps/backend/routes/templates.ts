@@ -8,6 +8,7 @@ import {
   deleteTemplate,
 } from "../repositories/TemplateRepository";
 import { getQueueByName } from "../queue";
+import logger from "../logger"; // Import the logger
 
 // Schema definitions
 const templateResponseSchema = z.object({
@@ -41,7 +42,9 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     handler: async (request, reply) => {
+      logger.debug("Retrieving all templates");
       const templates = await getTemplates();
+      logger.debug(`Retrieved ${templates.length} templates`);
       return templates;
     },
   });
@@ -63,13 +66,16 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     },
     handler: async (request, reply) => {
       const { id } = request.params as { id: number };
+      logger.debug(`Retrieving template with id: ${id}`);
       const template = await getTemplateById(id);
 
       if (!template) {
+        logger.warn(`Template with id ${id} not found`);
         reply.code(404);
         return { message: `Template with id ${id} not found` };
       }
 
+      logger.debug(`Retrieved template: ${template.name}`);
       return template;
     },
   });
@@ -85,7 +91,10 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     handler: async (request, reply) => {
-      const template = await createTemplate(request.body as any);
+      const templateData = request.body as any;
+      logger.info(`Creating new template: ${templateData.name}`);
+      const template = await createTemplate(templateData);
+      logger.info(`Template created successfully with id: ${template.id}`);
       reply.code(201);
       return template;
     },
@@ -109,14 +118,19 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     },
     handler: async (request, reply) => {
       const { id } = request.params as { id: number };
+      const updateData = request.body as any;
+      logger.info(`Updating template with id: ${id}`);
       const existingTemplate = await getTemplateById(id);
 
       if (!existingTemplate) {
+        logger.warn(`Update failed: Template with id ${id} not found`);
         reply.code(404);
         return { message: `Template with id ${id} not found` };
       }
 
-      const updatedTemplate = await updateTemplate(id, request.body as any);
+      const updatedTemplate = await updateTemplate(id, updateData);
+      logger.info(`Template id ${id} updated successfully`);
+      logger.debug(`Updated fields: ${Object.keys(updateData).join(", ")}`);
       return updatedTemplate;
     },
   });
@@ -141,13 +155,16 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     },
     handler: async (request, reply) => {
       const { id } = request.params as { id: number };
+      logger.info(`Deleting template with id: ${id}`);
       const success = await deleteTemplate(id);
 
       if (!success) {
+        logger.warn(`Deletion failed: Template with id ${id} not found`);
         reply.code(404);
         return { message: `Template with id ${id} not found` };
       }
 
+      logger.info(`Template id ${id} deleted successfully`);
       return {
         success: true,
         message: `Template with id ${id} deleted successfully`,
@@ -179,9 +196,11 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
         id: number;
         queueName: string;
       };
+      logger.info(`Executing template id ${id} on queue ${queueName}`);
       const template = await getTemplateById(id);
 
       if (!template) {
+        logger.warn(`Execution failed: Template with id ${id} not found`);
         reply.code(404);
         return { message: `Template with id ${id} not found` };
       }
@@ -189,18 +208,28 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
       const queue = getQueueByName(queueName);
 
       if (!queue) {
+        logger.warn(`Execution failed: Queue ${queueName} not found`);
         reply.code(404);
         return { message: `Queue ${queueName} not found` };
       }
 
       const formattedTime = Date.now();
-      console.log(template);
+      logger.debug(
+        `Template details: ${JSON.stringify({
+          name: template.name,
+          executionPath: template.executionPath,
+          hasArguments: !!template.arguments,
+        })}`
+      );
       const job = await queue.add(`👤 ${queueName} ⏱️ ${formattedTime}`, {
         script: template.script,
         arguments: template.arguments,
         executionPath: template.executionPath,
       });
 
+      logger.info(
+        `Template ${id} executed successfully, job created with id: ${job.id}`
+      );
       return {
         success: true,
         jobId: job.id,
