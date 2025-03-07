@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueueList } from "@/hooks/useQueueList";
 import {
   Card,
@@ -38,6 +38,9 @@ function ErrorFallback() {
 
 export default function QueueList() {
   const [searchQuery, setSearchQuery] = useState("");
+  // Add a state to store the initial queue order
+  const [initialQueueOrder, setInitialQueueOrder] = useState<string[]>([]);
+  const isFirstSuccessfulLoad = useRef(true);
 
   const { data, isLoading, isError, refetch, isFetching } = useQueueList();
   const queues = data?.queues || [];
@@ -51,13 +54,42 @@ export default function QueueList() {
     lastUpdated: new Date(),
   }));
 
+  // Set up the initial queue order once when data first loads successfully
+  useEffect(() => {
+    if (transformedQueues.length > 0 && isFirstSuccessfulLoad.current) {
+      // Sort by running jobs count (descending) and store queue names in that order
+      const sortedQueueNames = [...transformedQueues]
+        .sort((a, b) => b.running - a.running)
+        .map(queue => queue.queueName);
+
+      setInitialQueueOrder(sortedQueueNames);
+      isFirstSuccessfulLoad.current = false;
+    }
+  }, [transformedQueues]);
+
   // Filter queues based on search query
   const filteredQueues = transformedQueues.filter(queue =>
     queue.queueName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Sort queues by running jobs count (descending)
-  const sortedQueues = [...filteredQueues].sort((a, b) => b.running - a.running);
+  // Sort queues based on the initial order rather than re-sorting by running count
+  const sortedQueues = [...filteredQueues].sort((a, b) => {
+    // If both queues are in our initial order, use that order
+    const indexA = initialQueueOrder.indexOf(a.queueName);
+    const indexB = initialQueueOrder.indexOf(b.queueName);
+
+    // If both queues were in the initial order, sort by their initial positions
+    if (indexA >= 0 && indexB >= 0) {
+      return indexA - indexB;
+    }
+
+    // If a queue wasn't in the initial order (i.e., it's new), put it at the end
+    if (indexA < 0) return 1;
+    if (indexB < 0) return -1;
+
+    // Fallback to sorting by running count (should not reach here if initial order is set)
+    return b.running - a.running;
+  });
 
   // Handle refresh
   const handleRefresh = () => {
