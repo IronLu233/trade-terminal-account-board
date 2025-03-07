@@ -1,48 +1,19 @@
-import { JobStatus, Queue } from '@/types/queue';
+import {
+  JobList,
+  QueueDetailResponse,
+  QueueDetails,
+  Job,
+  JobStatus,
+} from '@/types/queue';
 import { useQuery } from '@tanstack/react-query';
 
 interface FetchQueuesResponse {
-  queues: Queue[];
+  queues: JobList;
 }
 
-export interface Pagination {
-  pageCount?: number;
-  range?: Range;
-}
-
-export interface Range {
-  start?: number;
-  end?: number;
-}
-
-interface UseQueueListParams {
-  page?: number;
-  jobsPerPage?: number;
-  activeQueue?: string;
-  status?: JobStatus;
-}
-
-const fetchQueues = async ({
-  page = 1,
-  jobsPerPage = 10,
-
-  // if activeQueue provides, job list will return in that queue item
-  activeQueue,
-  status,
-}: UseQueueListParams): Promise<FetchQueuesResponse> => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    jobsPerPage: jobsPerPage.toString(),
-  });
-
-  if (activeQueue) {
-    params.append('activeQueue', activeQueue);
-  }
-  if (status) {
-    params.append('status', status);
-  }
-
-  const response = await fetch(`/api/queues?${params.toString()}`, {
+const fetchQueues = async (): Promise<FetchQueuesResponse> => {
+  // Updated API endpoint to use the new v2 API
+  const response = await fetch(`/api/v2/queue`, {
     headers: {
       accept: 'application/json, text/plain, */*',
       'cache-control': 'no-cache',
@@ -55,14 +26,93 @@ const fetchQueues = async ({
     throw new Error('Failed to fetch queues');
   }
 
-  return response.json();
+  const data: { list: JobList } = await response.json();
+
+  // Sort queues by name alphabetically (case-insensitive)
+  data.list.sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+  );
+
+  return {
+    queues: data.list,
+  };
 };
 
-export const useQueueList = (params: UseQueueListParams = {}) => {
+export const useQueueList = () => {
   return useQuery({
-    queryKey: ['queues', params],
-    queryFn: () => fetchQueues(params),
+    queryKey: ['queues'],
+    queryFn: fetchQueues,
     staleTime: 5000,
     refetchInterval: 10000,
   });
 };
+
+interface UseQueueDetailOptions {
+  activeQueue?: string;
+}
+
+/**
+ * Hook to fetch details for a specific queue including its jobs
+ * @param options Options containing the queue name
+ * @returns Query result with queue details and jobs grouped by status
+ */
+export function useQueueDetail({ activeQueue }: UseQueueDetailOptions = {}) {
+  return useQuery({
+    queryKey: ['queue', activeQueue],
+    queryFn: async (): Promise<QueueDetails> => {
+      if (!activeQueue) {
+        throw new Error('Queue name is required');
+      }
+
+      const response = await fetch(`/api/v2/queue/${activeQueue}`, {
+        headers: {
+          accept: 'application/json',
+          'cache-control': 'no-cache',
+          pragma: 'no-cache',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch queue details: ${response.statusText}`,
+        );
+      }
+
+      const data: QueueDetailResponse = await response.json();
+
+      // Simplify job grouping to just completed, active, and failed
+      const jobsByStatus: Record<JobStatus, Job[]> = {
+        latest: data.jobs || [],
+        // Active: jobs that are not finished (no finishedOn) and are being processed or waiting
+        active: data.jobs?.filter((job) => !job.finishedOn) || [],
+        // Completed: jobs that are finished successfully (have finishedOn and not failed)
+        completed:
+          data.jobs?.filter((job) => job.finishedOn && !job.failedReason) || [],
+        // Failed: jobs that have a failedReason
+        failed: data.jobs?.filter((job) => !!job.failedReason) || [],
+        // Keep empty arrays for other statuses to maintain type compatibility
+        delayed: [],
+        waiting: [],
+        'waiting-children': [],
+        prioritized: [],
+        paused: [],
+      };
+
+      return {
+        name: data.name,
+        counts: data.counts || {},
+        lastUpdatedTime: data.lastUpdatedTime,
+        isPaused: Boolean(data.counts?.paused && data.counts.paused > 0),
+        type: 'default', // Default queue type
+        allowRetries: true, // Default value
+        readOnlyMode: false, // Default value
+        jobs: data.jobs || [],
+        jobsByStatus,
+      };
+    },
+    enabled: Boolean(activeQueue),
+    staleTime: 5000,
+    refetchInterval: 10000,
+  });
+}

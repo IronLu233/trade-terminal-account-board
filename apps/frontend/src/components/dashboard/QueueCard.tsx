@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QueueStats } from "@/types/queue";
 import { formatDistanceToNow } from "date-fns";
-import { Activity, CheckCircle, XCircle } from "lucide-react";
+import { Activity, CheckCircle, XCircle, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface QueueCardProps {
@@ -49,6 +49,14 @@ export default function QueueCard({ queue }: QueueCardProps) {
             <span className="text-xl font-semibold group-hover:text-primary transition-colors">{failed}</span>
             <span className="text-xs text-muted-foreground">Failed</span>
           </Link>
+        </div>
+
+        {/* Add last updated information */}
+        <div className="mt-4 pt-3 border-t border-muted flex items-center justify-center text-xs text-muted-foreground">
+          <Clock className="h-3 w-3 mr-1" />
+          {lastUpdated
+            ? `Updated ${formatDistanceToNow(lastUpdated)} ago`
+            : "No update time available"}
         </div>
       </CardContent>
     </Card>

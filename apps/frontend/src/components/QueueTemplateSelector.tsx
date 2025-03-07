@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -11,6 +11,7 @@ import { useTemplates, useRunTemplate } from "@/hooks/useTemplates";
 import { Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
 
 interface QueueTemplateSelectorProps {
   queueName: string;
@@ -22,6 +23,17 @@ export function QueueTemplateSelector({ queueName }: QueueTemplateSelectorProps)
   const runTemplateMutation = useRunTemplate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate()
+
+  // Auto-select first template when templates are loaded
+  useEffect(() => {
+    if (templates.length > 0 && !selectedTemplateId) {
+      setSelectedTemplateId(templates[0].id.toString());
+    } else if (templates.length === 0) {
+      // Reset selection if there are no templates
+      setSelectedTemplateId("");
+    }
+  }, [templates]);
 
   const handleRunTemplate = async () => {
     if (!selectedTemplateId) return;
@@ -33,10 +45,20 @@ export function QueueTemplateSelector({ queueName }: QueueTemplateSelectorProps)
       });
 
       if (result.jobId) {
-        // Show success toast notification
+        // Show success toast notification with link to job details
         toast({
           title: "Template executed",
-          description: "The template has been successfully added to the queue.",
+          description: (
+            <div>
+              The template has been successfully added to the queue.{" "}
+                <button
+                onClick={() => navigate(`/queues/jobs/${queueName}/${result.jobId}`)}
+                className="underline text-primary hover:text-primary/80"
+                >
+                View job details
+                </button>
+            </div>
+          ),
         });
 
         // Refetch queue data to update the counts

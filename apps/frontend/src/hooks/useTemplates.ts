@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Template } from '@/types/queue';
 
 // API endpoint base path
-const TEMPLATES_API = '/api/templates';
+const TEMPLATES_API = '/api/v2/template';
 
 // Type for template payload (create/update)
 export type TemplatePayload = {
@@ -38,7 +38,11 @@ export function useTemplates() {
     queryFn: async () => {
       const response = await fetch(TEMPLATES_API);
       const data = await handleApiResponse<any[]>(response);
-      return data.map(convertTemplateDates);
+      return data
+        .map(convertTemplateDates)
+        .sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+        );
     },
   });
 }
@@ -150,7 +154,7 @@ export function useRunTemplate() {
       templateId: number;
       queueName: string;
     }) => {
-      const response = await fetch(`/api/templates/run`, {
+      const response = await fetch(`${TEMPLATES_API}/run`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

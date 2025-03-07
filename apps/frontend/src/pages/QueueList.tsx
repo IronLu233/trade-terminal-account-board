@@ -42,7 +42,7 @@ export default function QueueList() {
   const [initialQueueOrder, setInitialQueueOrder] = useState<string[]>([]);
   const isFirstSuccessfulLoad = useRef(true);
 
-  const { data, isLoading, isError, refetch, isFetching } = useQueueList();
+  const { data, isLoading, isError, error, refetch, isFetching } = useQueueList();
   const queues = data?.queues || [];
 
   // Transform queue data to match the expected format
@@ -51,15 +51,28 @@ export default function QueueList() {
     running: queue.counts?.active || 0,
     successful: queue.counts?.completed || 0,
     failed: queue.counts?.failed || 0,
-    lastUpdated: new Date(),
+    lastUpdated: queue.latestJobUpdatedTime ? new Date(queue.latestJobUpdatedTime) : null,
+    latestJobUpdatedTime: queue.latestJobUpdatedTime || null,
   }));
 
   // Set up the initial queue order once when data first loads successfully
   useEffect(() => {
     if (transformedQueues.length > 0 && isFirstSuccessfulLoad.current) {
-      // Sort by running jobs count (descending) and store queue names in that order
+      // Sort by latestJobUpdatedTime (newest first), then by name if no timestamp
       const sortedQueueNames = [...transformedQueues]
-        .sort((a, b) => b.running - a.running)
+        .sort((a, b) => {
+          // If both have latestJobUpdatedTime, sort by that (newest first)
+          if (a.latestJobUpdatedTime && b.latestJobUpdatedTime) {
+            return b.latestJobUpdatedTime - a.latestJobUpdatedTime;
+          }
+
+          // If only one has latestJobUpdatedTime, that one comes first
+          if (a.latestJobUpdatedTime) return -1;
+          if (b.latestJobUpdatedTime) return 1;
+
+          // If neither has latestJobUpdatedTime, sort by name alphabetically
+          return a.queueName.localeCompare(b.queueName);
+        })
         .map(queue => queue.queueName);
 
       setInitialQueueOrder(sortedQueueNames);
@@ -119,7 +132,7 @@ export default function QueueList() {
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <div className="space-y-8 max-w-[3000px] mx-auto">
+      <div className="space-y-8 max-w-[1400px] mx-auto">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Queue List</h1>
           <p className="text-muted-foreground">
@@ -182,73 +195,64 @@ export default function QueueList() {
               <div className="text-center py-8">Loading queues...</div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="space-y-4">
                   {sortedQueues.length === 0 ? (
-                    <div className="col-span-full text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground">
                       {searchQuery ? "No queues match your search" : "No queues available"}
                     </div>
                   ) : (
-                    sortedQueues.map((queue) => {
-                      const total = queue.running + queue.successful + queue.failed;
-                      const successRate = total > 0 ? (queue.successful / total) * 100 : 100;
-
-                      return (
-                        <Card key={queue.queueName}>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base font-medium">
+                    sortedQueues.map((queue) => (
+                      <Card key={queue.queueName} className="overflow-hidden">
+                        <div className="flex flex-col md:flex-row md:items-center w-full p-4">
+                          <div className="flex items-center flex-grow mb-4 md:mb-0">
+                            <div className="flex-grow">
                               <Link
                                 to={`/queues/jobs/${queue.queueName}`}
-                                className="hover:underline text-primary"
+                                className="text-lg font-medium hover:underline text-primary"
                               >
                                 {queue.queueName}
                               </Link>
-                            </CardTitle>
-                            <CardDescription className="text-xs">
-                              Last updated: {formatDistanceToNow(queue.lastUpdated)} ago
-                            </CardDescription>
-                          </CardHeader>
+                              {queue.lastUpdated && (
+                                <div className="text-xs text-muted-foreground">
+                                  Last updated: {formatDistanceToNow(queue.lastUpdated)} ago
+                                </div>
+                              )}
+                            </div>
+                          </div>
 
-                          <CardContent className="pb-2">
-                            <div className="grid grid-cols-3 gap-2 mb-3">
-                              <div className="flex flex-col items-center">
-                                <div className="flex items-center gap-1">
-                                  <Activity className="h-4 w-4 text-blue-500" />
-                                  <span className="font-semibold">{queue.running}</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground">Running</span>
+                          <div className="flex flex-wrap justify-between md:justify-end items-center gap-4">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-1">
+                                <Activity className="h-4 w-4 text-blue-500" />
+                                <span className="text-sm"><span className="font-medium">{queue.running}</span> running</span>
                               </div>
-                              <div className="flex flex-col items-center">
-                                <div className="flex items-center gap-1">
-                                  <CheckCircle className="h-4 w-4 text-green-500" />
-                                  <span className="font-semibold">{queue.successful}</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground">Completed</span>
+                              <div className="flex items-center gap-1">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span className="text-sm"><span className="font-medium">{queue.successful}</span> completed</span>
                               </div>
-                              <div className="flex flex-col items-center">
-                                <div className="flex items-center gap-1">
-                                  <XCircle className="h-4 w-4 text-red-500" />
-                                  <span className="font-semibold">{queue.failed}</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground">Failed</span>
+                              <div className="flex items-center gap-1">
+                                <XCircle className="h-4 w-4 text-red-500" />
+                                <span className="text-sm"><span className="font-medium">{queue.failed}</span> failed</span>
                               </div>
                             </div>
-                          </CardContent>
 
-                          <CardFooter className="flex-col items-stretch gap-2 pt-0">
-                            <Separator className="mb-2" />
-                            <QueueTemplateSelector queueName={queue.queueName} />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              asChild
-                              className="w-full mt-1"
-                            >
-                              <Link to={`/queues/jobs/${queue.queueName}`}>View Jobs</Link>
-                            </Button>
-                          </CardFooter>
-                        </Card>
-                      );
-                    })
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                              <div className="flex-grow md:w-64">
+                                <QueueTemplateSelector queueName={queue.queueName} />
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="whitespace-nowrap"
+                              >
+                                <Link to={`/queues/jobs/${queue.queueName}`}>View Jobs</Link>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
                   )}
                 </div>
                 <div className="mt-4 text-sm text-muted-foreground">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
-import { useQueueList } from "../hooks/useQueueList";
+import { useQueueDetail } from "../hooks/useQueueList";
 import { format } from "date-fns";
 
 // shadcn UI components
@@ -66,16 +66,24 @@ export default function QueueDetail() {
     setSearchParams({ status: currentTab });
   }, [currentTab, setSearchParams]);
 
-  // Fetch queue data with the activeQueue parameter to get jobs
-  const { data, error, refetch, isLoading } = useQueueList({
-    activeQueue: queueName,
-    status: currentTab
+  // Use the new useQueueDetail hook
+  const { data: queueDetail, error, refetch, isLoading } = useQueueDetail({
+    activeQueue: queueName
   });
 
-  // Find the current queue from the queues array
-  const currentQueue = data?.queues.find((q) => q.name === queueName);
-  const jobs = currentQueue?.jobs || [];
-  const counts = currentQueue?.counts || {};
+  // Handle refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Get jobs filtered by current tab
+  const jobs = queueDetail?.jobsByStatus?.[currentTab] || [];
+  const counts = queueDetail?.counts || {};
 
   // Calculate total jobs
   const totalJobs =
@@ -93,35 +101,15 @@ export default function QueueDetail() {
     ? ((counts.completed || 0) / totalJobs) * 100
     : 0;
 
-  // Handle refresh
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await refetch();
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // Filter jobs based on search query and status
+  // Filter jobs based on search query
   const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return job.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.data?.account?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.data?.script?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.id.toString().includes(searchQuery.toLowerCase());
-
-    const matchesTab =
-      currentTab === 'latest' ||
-      (currentTab === "completed" && !job.isFailed && job.finishedOn) ||
-      (currentTab === "failed" && job.isFailed) ||
-      (currentTab === "active" && !job.finishedOn) ||
-      (currentTab === "delayed" && job.delay > 0);
-
-    return matchesSearch && matchesTab;
   });
 
-  if (isLoading && !currentQueue) {
+  if (isLoading && !queueDetail) {
     return (
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -212,7 +200,7 @@ export default function QueueDetail() {
     );
   }
 
-  if (!currentQueue) {
+  if (!queueDetail) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center mb-6">
@@ -236,9 +224,6 @@ export default function QueueDetail() {
       </div>
     );
   }
-
-  // Filter counts for tabs
-  // Get counts for different job statuses
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -277,10 +262,10 @@ export default function QueueDetail() {
               <div>
                 <h3 className="text-sm font-medium mb-2">Queue Status</h3>
                 <div className="flex items-center gap-2">
-                  <Badge variant={currentQueue.isPaused ? "outline" : "default"}>
-                    {currentQueue.isPaused ? "Paused" : "Active"}
+                  <Badge variant={queueDetail.isPaused ? "outline" : "default"}>
+                    {queueDetail.isPaused ? "Paused" : "Active"}
                   </Badge>
-                  <Badge variant="outline">{currentQueue.type || "N/A"}</Badge>
+                  <Badge variant="outline">{queueDetail.type || "N/A"}</Badge>
                 </div>
               </div>
 
@@ -359,12 +344,12 @@ export default function QueueDetail() {
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Allow Retries</span>
-                  <span className="text-sm">{currentQueue.allowRetries ? "Yes" : "No"}</span>
+                  <span className="text-sm">{queueDetail.allowRetries ? "Yes" : "No"}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Read Only</span>
-                  <span className="text-sm">{currentQueue.readOnlyMode ? "Yes" : "No"}</span>
+                  <span className="text-sm">{queueDetail.readOnlyMode ? "Yes" : "No"}</span>
                 </div>
               </div>
             </div>
@@ -381,7 +366,7 @@ export default function QueueDetail() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab as never}>
+          <Tabs defaultValue="latest" value={currentTab} onValueChange={setCurrentTab as never}>
             <TabsList className="grid grid-cols-4 mb-6 h-10 gap-1">
               <TabsTrigger value="latest" className="flex items-center justify-center h-full">
                 <div className="flex items-center">
@@ -532,8 +517,8 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
               <TableCell>{job.data?.script || "N/A"}</TableCell>
               <TableCell>{formatDate(job.timestamp)}</TableCell>
               <TableCell>
-                {job.returnValue?.completedAt
-                  ? format(new Date(job.returnValue.completedAt), "yyyy-MM-dd HH:mm:ss")
+                {job.returnvalue?.completedAt
+                  ? format(new Date(job.returnvalue.completedAt), "yyyy-MM-dd HH:mm:ss")
                   : "N/A"}
               </TableCell>
               <TableCell>{calculateDuration(job)}</TableCell>

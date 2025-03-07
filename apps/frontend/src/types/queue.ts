@@ -1,9 +1,11 @@
+import { JobJson } from 'bullmq';
+
 export interface QueueStats {
   queueName: string;
   running: number;
   successful: number;
   failed: number;
-  lastUpdated: Date;
+  lastUpdated: Date | null;
 }
 
 export interface Template {
@@ -28,42 +30,13 @@ export interface JobReturnValue {
   [key: string]: any; // Allow for additional properties
 }
 
-export interface Job {
-  id: string;
-  timestamp: number;
-  processedOn?: number;
-  finishedOn?: number;
-  progress: number;
-  attempts: number;
-  delay: number;
-  stacktrace: string[];
-  failedReason?: string;
-  opts: {
-    attempts: number;
-    [key: string]: any;
-  };
-  data: JobData;
+// New interface to match the backend response for a specific queue with its jobs
+export type JobList = {
   name: string;
-  returnValue?: JobReturnValue;
-  isFailed: boolean;
-  attemptsMade: number;
-  maxAttempts: number;
-  lastRetryTime?: number;
-}
-
-export interface Queue {
-  name: string;
-  statuses?: JobStatus[];
-  counts?: Counts;
-  jobs?: Job[];
-  pagination?: Pagination;
-  readOnlyMode?: boolean;
-  allowRetries?: boolean;
-  allowCompletedRetries?: boolean;
-  isPaused?: boolean;
-  type?: Type;
-  delimiter?: string;
-}
+  counts: Counts;
+  latestJobUpdatedTime?: number | null;
+  jobs: JobJson[];
+}[];
 
 export interface Counts {
   active?: number;
@@ -76,11 +49,57 @@ export interface Counts {
   'waiting-children'?: number;
 }
 
-type Type = 'bullmq';
+// Define the interface for the queue detail response from API
+export interface QueueDetailResponse {
+  name: string;
+  counts: Counts;
+  lastUpdatedTime?: number | null;
+  jobs: Job[];
+}
 
-export interface Pagination {
-  pageCount?: number;
-  range?: Range;
+// Enhanced QueueDetails interface with jobsByStatus
+export interface QueueDetails {
+  name: string;
+  counts: Counts;
+  lastUpdatedTime?: number | null;
+  isPaused: boolean;
+  type: string;
+  allowRetries: boolean;
+  readOnlyMode: boolean;
+  jobs: Job[];
+  jobsByStatus: Record<JobStatus, Job[]>;
+}
+
+// Job interface aligned with backend JobJson
+export interface Job {
+  name: string;
+  data: {
+    script: string;
+    arguments?: string;
+    executionPath?: string;
+    pid?: number;
+    [key: string]: any;
+  };
+  opts?: {
+    attempts: number;
+    [key: string]: any;
+  };
+  id: string;
+  progress: number;
+  returnvalue?: {
+    completedAt?: string;
+    [key: string]: any;
+  };
+  stacktrace: any[];
+  delay: number;
+  priority: number;
+  attemptsStarted: number;
+  attemptsMade: number;
+  timestamp: number;
+  queueQualifiedName?: string;
+  finishedOn?: number;
+  processedOn?: number;
+  failedReason?: string;
 }
 
 export type JobStatus =

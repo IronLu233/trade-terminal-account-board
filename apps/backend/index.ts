@@ -12,8 +12,9 @@ import {
 } from "fastify-type-provider-zod";
 import ACCOUNTS from "./accounts.json";
 import { initializeDatabase } from "./database/data-source";
-import templateRoutes from "./routes/templates";
+import templateRoutes from "./routes/template";
 import systemInfoRoutes from "./routes/system-info";
+import queueRoutes from "./routes/queue";
 import { setupQueues } from "./queue";
 import path from "path";
 import fastifyView from "@fastify/view";
@@ -80,15 +81,16 @@ const run = async () => {
     root: path.join(uiBasePath, "dist"),
   });
 
+  // Register template routes
+  app.register(templateRoutes, { prefix: "/api/v2/template" });
+  app.register(systemInfoRoutes, { prefix: "/api/v2/systemInfo" });
+  app.register(queueRoutes, { prefix: "/api/v2/queue" });
+
   serverAdapter.setBasePath("/");
   app.register(serverAdapter.registerPlugin(), {
     prefix: "/",
     basePath: "/",
   });
-
-  // Register template routes
-  app.register(templateRoutes, { prefix: "/api/templates" });
-  app.register(systemInfoRoutes, { prefix: "/api/systemInfo" });
 
   // Add catch-all route to handle SPA routing
   app.setNotFoundHandler(async (request, reply) => {

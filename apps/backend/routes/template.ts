@@ -221,11 +221,18 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
           hasArguments: !!template.arguments,
         })}`
       );
-      const job = await queue.add(`👤 ${queueName} ⏱️ ${formattedTime}`, {
-        script: template.script,
-        arguments: template.arguments,
-        executionPath: template.executionPath,
-      });
+      const job = await queue.add(
+        `👤 ${queueName} ⏱️ ${formattedTime}`,
+        {
+          script: template.script,
+          arguments: template.arguments,
+          executionPath: template.executionPath,
+        },
+        {
+          removeOnComplete: 300,
+          removeOnFail: 300,
+        }
+      );
 
       logger.info(
         `Template ${id} executed successfully, job created with id: ${job.id}`

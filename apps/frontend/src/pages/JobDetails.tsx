@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/tooltip";
 import JobStatusBadge from "@/components/queues/JobStatusBadge";
 import { useToast } from "@/hooks/use-toast";
-import { useJobDetail } from "@/hooks/useJobDetail";
+import { useJobDetail, useTerminateJob } from "@/hooks/useJobDetail";
 import { useJobLog } from "@/hooks/useJobLog";
 
 // Helper function to parse log entries
@@ -92,9 +92,11 @@ export default function JobDetails() {
   const [errorLevelFilters, setErrorLevelFilters] = useState<string[]>(["ERROR", "WARN"]);
   const [showTimestamps, setShowTimestamps] = useState(true);
   const [mergedLogs, setMergedLogs] = useState<string[]>([]);
+  const [autoScroll, setAutoScroll] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const scrollAreaContainerRef = useRef<HTMLDivElement>(null);
+  const [isTerminateDialogOpen, setIsTerminateDialogOpen] = useState(false);
+  const [isTerminating, setIsTerminating] = useState(false);
 
   // Use the hooks to fetch job details and logs
   const {
@@ -114,6 +116,8 @@ export default function JobDetails() {
     isRefetching: isRefetchingLogs
   } = useJobLog({ queueName: queueName || '', jobId: jobId || '' });
 
+  const terminateJobMutation = useTerminateJob(queueName || '', jobId || '');
+
   // Extract job data and format it for display
   const job = jobData ? {
     id: jobData.job.id,
@@ -128,7 +132,7 @@ export default function JobDetails() {
     parameters: jobData.job.data,
     logs: jobData.job.stacktrace || [],
     progress: jobData.job.progress || 0,
-    isFailed: jobData.job.isFailed || false,
+    isFailed: !!jobData.job.failedReason || false,
     failedReason: jobData.job.failedReason || '',
     stacktrace: jobData.job.stacktrace || []
   } : null;
@@ -150,10 +154,26 @@ export default function JobDetails() {
 
   // Auto-scroll to bottom when new logs come in
   useEffect(() => {
-    if (job?.status === "active" && mergedLogs.length > 0) {
-      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (autoScroll && job?.status === "active" && mergedLogs.length > 0) {
+      setTimeout(() => {
+        // Direct scrolling of the container div instead of using scrollIntoView
+        if (scrollAreaContainerRef.current) {
+          scrollAreaContainerRef.current.scrollTop = scrollAreaContainerRef.current.scrollHeight;
+        }
+      }, 100);
     }
-  }, [mergedLogs, job?.status]);
+  }, [mergedLogs, job?.status, autoScroll]);
+
+  // Handle scroll events to determine if user has manually scrolled up
+  const handleScroll = () => {
+    if (!scrollAreaContainerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = scrollAreaContainerRef.current;
+    // If user scrolled up (not at bottom), disable auto-scroll
+    // If user scrolled to bottom, enable auto-scroll
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 30;
+    setAutoScroll(isAtBottom);
+  };
 
   // Set up polling for logs if job is active
   useEffect(() => {
@@ -196,34 +216,31 @@ export default function JobDetails() {
     }
   };
 
-  const handleDeleteJob = async () => {
+  const handleTerminateJob = async () => {
     if (!queueName || !jobId) return;
 
-    setIsDeleting(true);
+    setIsTerminating(true);
 
     try {
-      // TODO: Implement the API call to delete the job
-      // await deleteJob(queueName, jobId);
-
-      // For now, simulate a successful deletion
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await terminateJobMutation.mutateAsync();
+      await refetchJob();
 
       toast({
-        title: "Job deleted",
-        description: `Job #${jobId} has been successfully deleted.`,
+        title: "Job terminated",
+        description: `Job #${jobId} has been successfully terminated.`,
         duration: 3000,
       });
 
-      // Navigate back to queue detail page
-      navigate(`/queues/jobs/${queueName}`);
     } catch (error) {
       toast({
-        title: "Delete failed",
-        description: "Could not delete the job. Please try again.",
+        title: "Termination failed",
+        description: "Could not terminate the job. Please try again.",
         variant: "destructive",
         duration: 5000,
       });
-      setIsDeleting(false);
+    } finally {
+      setIsTerminating(false);
+      setIsTerminateDialogOpen(false);
     }
   };
 
@@ -377,48 +394,47 @@ export default function JobDetails() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  disabled={isDeleting}
+                  onClick={() => setIsTerminateDialogOpen(true)}
+                  disabled={isTerminating}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Job
+                  <X className="mr-2 h-4 w-4" />
+                  Terminate Job
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Delete this job</p>
+                <p>Terminate this job</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
       </div>
 
-      {/* Delete confirmation dialog */}
+      {/* Terminate confirmation dialog */}
       <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
+        open={isTerminateDialogOpen}
+        onOpenChange={setIsTerminateDialogOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this job?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure you want to terminate this job?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the job
-              and remove it from the queue.
+              This action cannot be undone. The job will be stopped and marked as terminated.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isTerminating}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteJob}
-              disabled={isDeleting}
+              onClick={handleTerminateJob}
+              disabled={isTerminating}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              {isDeleting ? (
+              {isTerminating ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
+                  Terminating...
                 </>
               ) : (
-                "Delete"
+                "Terminate"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -646,45 +662,76 @@ export default function JobDetails() {
 
             <Card className="bg-muted dark:bg-slate-950 border-none">
               <ScrollArea className="h-[400px] w-full rounded-md p-4">
-                <div className="font-mono text-sm whitespace-pre-wrap">
-                  {filteredLogs && filteredLogs.length > 0 ? (
-                    filteredLogs.map((log, index) => {
-                      const parsedLog = parseLogEntry(log);
-                      const isError = isErrorLog(log);
+                {/* Add a div inside ScrollArea that we can reference and track scrolling on */}
+                <div
+                  ref={scrollAreaContainerRef}
+                  onScroll={handleScroll}
+                  className="h-full overflow-auto"
+                >
+                  <div className="font-mono text-sm whitespace-pre-wrap">
+                    {filteredLogs && filteredLogs.length > 0 ? (
+                      filteredLogs.map((log, index) => {
+                        const parsedLog = parseLogEntry(log);
+                        const isError = isErrorLog(log);
 
-                      return (
-                        <div
-                          key={index}
-                          className={`mb-1 ${isError ? "text-red-500 dark:text-red-400" : ""}`}
-                        >
-                          {showTimestamps || !parsedLog.timestamp ? (
-                            <span>{`${parsedLog.formattedTimestamp} ${parsedLog.content}`}</span>
-                          ) : (
-                            <span>{parsedLog.content}</span>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-muted-foreground">
-                      {logSearchQuery ? "No logs matching your search" : "No logs available"}
-                    </div>
-                  )}
+                        return (
+                          <div
+                            key={index}
+                            className={`mb-1 ${isError ? "text-red-500 dark:text-red-400" : ""}`}
+                          >
+                            {showTimestamps && parsedLog.timestamp ? (
+                              <span>{parsedLog.formattedTimestamp} {parsedLog.content}</span>
+                            ) : (
+                              <span>{parsedLog.content || parsedLog.raw}</span>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-muted-foreground">
+                        {logSearchQuery ? "No logs matching your search" : "No logs available"}
+                      </div>
+                    )}
 
-                  {job.status === "active" && (
-                    <div className="flex items-center gap-2 mt-2 text-muted-foreground">
-                      <RefreshCw className="h-3 w-3 animate-spin" />
-                      <span>Job is still running... {isLoadingLogs ? "(Loading logs)" : ""}</span>
-                    </div>
-                  )}
+                    {job.status === "active" && (
+                      <div className="flex items-center gap-2 mt-2 text-muted-foreground">
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        <span>Job is still running... {isLoadingLogs ? "(Loading logs)" : ""}</span>
+                      </div>
+                    )}
 
-                  <div ref={logsEndRef} />
+                    {/* We can keep this ref for compatibility but don't need to use it for scrolling */}
+                    <div ref={logsEndRef} />
+                  </div>
                 </div>
               </ScrollArea>
             </Card>
 
-            <div className="mt-2 text-xs text-muted-foreground">
-              {filteredLogs.length} {filteredLogs.length === 1 ? "entry" : "entries"} {logSearchQuery && "matching filter"}
+            <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
+              <div>
+                {filteredLogs.length} {filteredLogs.length === 1 ? "entry" : "entries"} {logSearchQuery && "matching filter"}
+              </div>
+              {job?.status === "active" && (
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs ${autoScroll ? "text-green-500" : "text-muted-foreground"}`}>
+                    {autoScroll ? "Auto-scroll enabled" : "Auto-scroll disabled"}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs py-0"
+                    onClick={() => {
+                      setAutoScroll(true);
+                      // Update the scroll to bottom action to use direct scrolling
+                      if (scrollAreaContainerRef.current) {
+                        scrollAreaContainerRef.current.scrollTop = scrollAreaContainerRef.current.scrollHeight;
+                      }
+                    }}
+                  >
+                    Scroll to Bottom
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

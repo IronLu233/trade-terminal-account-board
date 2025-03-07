@@ -23,7 +23,7 @@ export default function StatsGrid() {
     running: queue.counts?.active || 0,
     successful: queue.counts?.completed || 0,
     failed: queue.counts?.failed || 0,
-    lastUpdated: new Date()
+    lastUpdated: queue.latestJobUpdatedTime ? new Date(queue.latestJobUpdatedTime) : null
   }));
 
   return (

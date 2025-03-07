@@ -50,3 +50,27 @@ export const useRetryJob = (
     },
   });
 };
+
+export const useTerminateJob = (queueName: string, jobId: string) => {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch(
+        `/api/v2/queue/${queueName}/${jobId}/terminate`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}), // Add empty object as body
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cancel job');
+      }
+
+      return response.json();
+    },
+  });
+};
