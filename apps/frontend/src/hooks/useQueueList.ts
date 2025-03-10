@@ -5,7 +5,7 @@ import {
   Job,
   JobStatus,
 } from '@/types/queue';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface FetchQueuesResponse {
   queues: JobList;
@@ -115,4 +115,39 @@ export function useQueueDetail({ activeQueue }: UseQueueDetailOptions = {}) {
     staleTime: 5000,
     refetchInterval: 10000,
   });
+}
+
+export function useCreateQueue() {
+  const queryClient = useQueryClient();
+
+  /**
+   * Create a new queue with the specified name
+   * @param name The name of the queue to create (also used as --account parameter)
+   * @returns Promise with the created queue response
+   */
+  const createQueue = async (name: string) => {
+    const response = await fetch(`/api/v2/queue`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({ queueName: name }),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to create queue');
+    }
+
+    const data = await response.json();
+
+    // Invalidate queues cache to refresh the list
+    queryClient.invalidateQueries({ queryKey: ['queues'] });
+
+    return data;
+  };
+
+  return { createQueue };
 }

@@ -1,7 +1,7 @@
-import { AppDataSource } from "../database/data-source";
+import { SqliteDataSource } from "../database/sqlite";
 import { Template } from "../entities/Template";
 
-export const TemplateRepository = AppDataSource.getRepository(Template);
+export const TemplateRepository = SqliteDataSource.getRepository(Template);
 
 export const getTemplates = async () => {
   return await TemplateRepository.find();

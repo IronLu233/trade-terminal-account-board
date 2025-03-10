@@ -36,6 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Env
 .env
 
-accounts.json
+config.yaml
 database.sqlite
 *.log

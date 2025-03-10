@@ -15,7 +15,7 @@ export function useJobLog({ queueName, jobId }: UseJobLogParams) {
   return useQuery<string[]>({
     queryKey: ['jobLogs', queueName, jobId],
     queryFn: async () => {
-      const response = await fetch(`/api/queues/${queueName}/${jobId}/logs`);
+      const response = await fetch(`/api/v2/queue/${queueName}/${jobId}/logs`);
       if (!response.ok) {
         throw new Error(`Failed to fetch job logs: ${response.statusText}`);
       }

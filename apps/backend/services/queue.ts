@@ -1,16 +1,18 @@
 import { Job, Queue as QueueMQ, type ConnectionOptions } from "bullmq";
 
+import { redisOptions } from "../config/redis";
+import { configDb } from "../database/lowDb";
+import { setupBullMQProcessor } from "./processor";
+
 const queueMap = new Map<string, QueueMQ>();
 
-const createQueueMQ = (name: string, redisOptions: ConnectionOptions) =>
+const createQueueMQ = (name: string) =>
   new QueueMQ(name, { connection: redisOptions });
 
-export function setupQueues(
-  accounts: string[],
-  redisOptions: ConnectionOptions
-) {
+export async function setupQueues() {
+  const { accounts } = (await configDb.read()) as { accounts: string[] };
   for (const account of accounts) {
-    queueMap.set(account, createQueueMQ(account, redisOptions));
+    queueMap.set(account, createQueueMQ(account));
   }
 
   return Array.from(queueMap.values());
@@ -58,4 +60,21 @@ export async function getQueueList() {
   }
 
   return result;
+}
+
+export async function createQueue(name: string) {
+  const originConfig = await configDb.read();
+
+  if (queueMap.has(name)) {
+    throw new Error(`Queue with name "${name}" already exists`);
+  }
+
+  await configDb.write({
+    ...originConfig,
+    accounts: [...originConfig!.accounts, name],
+  });
+
+  const queue = createQueueMQ(name);
+  queueMap.set(name, queue);
+  setupBullMQProcessor(name);
 }

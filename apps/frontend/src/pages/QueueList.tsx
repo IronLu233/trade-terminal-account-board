@@ -6,7 +6,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { ErrorBoundary } from "react-error-boundary";
 import { AlertCircle, RefreshCw, Activity, CheckCircle, XCircle, X } from "lucide-react";
@@ -22,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { QueueTemplateSelector } from "@/components/QueueTemplateSelector";
-import { Separator } from "@/components/ui/separator";
+import { CreateQueueDialog } from "@/components/queues/CreateQueueDialog";
 
 function ErrorFallback() {
   return (
@@ -133,11 +132,14 @@ export default function QueueList() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="space-y-8 max-w-[1400px] mx-auto">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Queue List</h1>
-          <p className="text-muted-foreground">
-            Monitor and manage message queues across your system
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Queue List</h1>
+            <p className="text-muted-foreground">
+              Monitor and manage message queues across your system
+            </p>
+          </div>
+          <CreateQueueDialog />
         </div>
 
         <Card>

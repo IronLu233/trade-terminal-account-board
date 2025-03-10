@@ -88,8 +88,6 @@ export default function JobDetails() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [logSearchQuery, setLogSearchQuery] = useState("");
-  const [errorSearchQuery, setErrorSearchQuery] = useState("");
-  const [errorLevelFilters, setErrorLevelFilters] = useState<string[]>(["ERROR", "WARN"]);
   const [showTimestamps, setShowTimestamps] = useState(true);
   const [mergedLogs, setMergedLogs] = useState<string[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -118,23 +116,26 @@ export default function JobDetails() {
 
   const terminateJobMutation = useTerminateJob(queueName || '', jobId || '');
 
+  const parsedJobData: { script: string; arguments: string, executionPath: string, pid?: number } = jobData ? JSON.parse(jobData.data) : {};
+
   // Extract job data and format it for display
   const job = jobData ? {
-    id: jobData.job.id,
-    name: jobData.job.name || 'Job ' + jobData.job.id,
-    status: jobData.status,
+    id: jobData.id,
+    name: jobData.name || 'Job ' + jobData.id,
+    status: jobData.failedReason ? 'failed' : jobData.finishedOn ? 'completed' : jobData.processedOn ? 'active' : 'unknown',
     queueName: queueName || '',
-    createdAt: new Date(jobData.job.timestamp),
-    updatedAt: jobData.job.finishedOn ? new Date(jobData.job.finishedOn) : new Date(),
-    duration: jobData.job.finishedOn && jobData.job.processedOn ?
-      jobData.job.finishedOn - jobData.job.processedOn : undefined,
-    command: jobData.job.data.script || jobData.job.data.action || 'No command',
-    parameters: jobData.job.data,
-    logs: jobData.job.stacktrace || [],
-    progress: jobData.job.progress || 0,
-    isFailed: !!jobData.job.failedReason || false,
-    failedReason: jobData.job.failedReason || '',
-    stacktrace: jobData.job.stacktrace || []
+    createdAt: new Date(jobData.timestamp),
+    updatedAt: jobData.finishedOn ? new Date(jobData.finishedOn) : new Date(),
+    duration: jobData.finishedOn && jobData.processedOn ?
+      jobData.finishedOn - jobData.processedOn : undefined,
+    command: `${parsedJobData.executionPath || 'python'} ${parsedJobData.script} --account ${queueName} ${parsedJobData.arguments || ''}`.trim(),
+
+    parameters: parsedJobData,
+    logs: [],
+    progress: jobData.progress || 0,
+    isFailed: !!jobData.failedReason || false,
+    failedReason: jobData.failedReason || '',
+    stacktrace: Array.isArray(jobData.stacktrace) ? jobData.stacktrace : []
   } : null;
 
   // Merge logs from both sources whenever either changes
@@ -295,26 +296,6 @@ export default function JobDetails() {
     return mergedLogs.filter(log =>
       log.toLowerCase().includes(logSearchQuery.toLowerCase())
     );
-  };
-
-  // Filter error logs based on search query and level filters
-  const getFilteredErrorLogs = () => {
-    if (!mergedLogs || mergedLogs.length === 0) return [];
-
-    return mergedLogs.filter(log => {
-      // Check if it's an error log
-      if (!isErrorLog(log)) return false;
-
-      // Apply search filter
-      if (!log.toLowerCase().includes(errorSearchQuery.toLowerCase())) return false;
-
-      // Apply level filters
-      if (errorLevelFilters.length > 0) {
-        return errorLevelFilters.some(level => log.includes(`[${level}]`));
-      }
-
-      return true;
-    });
   };
 
   const isLoading = isLoadingJob || isLoadingLogs;

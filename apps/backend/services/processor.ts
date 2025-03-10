@@ -1,8 +1,8 @@
 import { Worker } from "bullmq";
-import { redisOptions } from "./redis";
-import type { JobPayload } from "./types";
+import { redisOptions } from "../config/redis";
+import type { JobPayload } from "../utils/types";
 import { spawn } from "child_process";
-import logger from "./logger";
+import logger from "../utils/logger";
 
 export function setupBullMQProcessor(queueName: string) {
   logger.info(`Setting up BullMQ processor for queue: ${queueName}`);

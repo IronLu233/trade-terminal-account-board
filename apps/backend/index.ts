@@ -2,35 +2,26 @@ import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { FastifyAdapter } from "@bull-board/fastify";
 import fastify from "fastify";
-import { setupBullMQProcessor } from "./processor";
-import { redisOptions } from "./redis";
+import { setupBullMQProcessor } from "./services/processor";
 import {
   type ZodTypeProvider,
   jsonSchemaTransform,
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
-import ACCOUNTS from "./accounts.json";
-import { initializeDatabase } from "./database/data-source";
+import { initializeDatabase } from "./database/sqlite";
 import templateRoutes from "./routes/template";
 import systemInfoRoutes from "./routes/system-info";
 import queueRoutes from "./routes/queue";
-import { setupQueues } from "./queue";
+import { setupQueues } from "./services/queue";
 import path from "path";
 import fastifyView from "@fastify/view";
-
-function readQueuesFromConfig() {
-  try {
-    return ACCOUNTS.map((q) => q.trim());
-  } catch (e) {
-    return [];
-  }
-}
 
 const run = async () => {
   // Initialize database connection
   await initializeDatabase();
-  const queues = setupQueues(readQueuesFromConfig(), redisOptions);
+
+  const queues = await setupQueues();
 
   queues.forEach((q) => {
     setupBullMQProcessor(q.name);

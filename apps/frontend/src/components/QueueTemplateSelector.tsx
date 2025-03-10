@@ -65,7 +65,7 @@ export function QueueTemplateSelector({ queueName }: QueueTemplateSelectorProps)
         queryClient.invalidateQueries({ queryKey: ['queues'] });
 
         // Reset the selected template
-        setSelectedTemplateId("");
+        setSelectedTemplateId(templates[0].id.toString());
       }
     } catch (error) {
       toast({
