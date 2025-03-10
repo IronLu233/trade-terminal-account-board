@@ -1,3 +1,4 @@
+import { parseJobWithData } from '@/lib/utils';
 import {
   JobList,
   QueueDetailResponse,
@@ -83,14 +84,21 @@ export function useQueueDetail({ activeQueue }: UseQueueDetailOptions = {}) {
 
       // Simplify job grouping to just completed, active, and failed
       const jobsByStatus: Record<JobStatus, Job[]> = {
-        latest: data.jobs || [],
+        latest: data.jobs.map(parseJobWithData) || [],
         // Active: jobs that are not finished (no finishedOn) and are being processed or waiting
-        active: data.jobs?.filter((job) => !job.finishedOn) || [],
+        active:
+          data.jobs?.filter((job) => !job.finishedOn).map(parseJobWithData) ||
+          [],
         // Completed: jobs that are finished successfully (have finishedOn and not failed)
         completed:
-          data.jobs?.filter((job) => job.finishedOn && !job.failedReason) || [],
+          data.jobs
+            ?.filter((job) => job.finishedOn && !job.failedReason)
+            .map(parseJobWithData) || [],
         // Failed: jobs that have a failedReason
-        failed: data.jobs?.filter((job) => !!job.failedReason) || [],
+        failed:
+          data.jobs
+            ?.filter((job) => !!job.failedReason)
+            .map(parseJobWithData) || [],
         // Keep empty arrays for other statuses to maintain type compatibility
         delayed: [],
         waiting: [],
@@ -107,7 +115,7 @@ export function useQueueDetail({ activeQueue }: UseQueueDetailOptions = {}) {
         type: 'default', // Default queue type
         allowRetries: true, // Default value
         readOnlyMode: false, // Default value
-        jobs: data.jobs || [],
+        jobs: data.jobs.map(parseJobWithData) || [],
         jobsByStatus,
       };
     },

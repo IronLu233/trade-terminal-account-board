@@ -4,7 +4,7 @@ import { CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface JobStatusBadgeProps {
-  status: JobStatus;
+  status: JobStatus | 'unknown';
 }
 
 export default function JobStatusBadge({ status }: JobStatusBadgeProps) {

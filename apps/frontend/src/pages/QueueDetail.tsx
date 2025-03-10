@@ -464,13 +464,11 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
     );
   }
 
-  const getStatusBadge = (job: any) => {
-    if (job.isFailed) {
+  const getStatusBadge = (job: Job) => {
+    if (job.failedReason) {
       return <Badge variant="destructive">Failed</Badge>;
     } else if (job.finishedOn) {
       return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
-    } else if (job.delay > 0) {
-      return <Badge variant="outline">Delayed</Badge>;
     } else {
       return <Badge variant="default">Active</Badge>;
     }
@@ -517,8 +515,8 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
               <TableCell>{job.data?.script || "N/A"}</TableCell>
               <TableCell>{formatDate(job.timestamp)}</TableCell>
               <TableCell>
-                {job.returnvalue?.completedAt
-                  ? format(new Date(job.returnvalue.completedAt), "yyyy-MM-dd HH:mm:ss")
+                {job.finishedOn
+                  ? format(new Date(job.finishedOn), "yyyy-MM-dd HH:mm:ss")
                   : "N/A"}
               </TableCell>
               <TableCell>{calculateDuration(job)}</TableCell>

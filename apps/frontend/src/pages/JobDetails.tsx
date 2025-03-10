@@ -39,6 +39,7 @@ import JobStatusBadge from "@/components/queues/JobStatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { useJobDetail, useTerminateJob } from "@/hooks/useJobDetail";
 import { useJobLog } from "@/hooks/useJobLog";
+import { getJobStatus } from "@/lib/utils";
 
 // Helper function to parse log entries
 const parseLogEntry = (log: string) => {
@@ -116,21 +117,20 @@ export default function JobDetails() {
 
   const terminateJobMutation = useTerminateJob(queueName || '', jobId || '');
 
-  const parsedJobData: { script: string; arguments: string, executionPath: string, pid?: number } = jobData ? JSON.parse(jobData.data) : {};
 
   // Extract job data and format it for display
   const job = jobData ? {
     id: jobData.id,
     name: jobData.name || 'Job ' + jobData.id,
-    status: jobData.failedReason ? 'failed' : jobData.finishedOn ? 'completed' : jobData.processedOn ? 'active' : 'unknown',
+    status: getJobStatus(jobData),
     queueName: queueName || '',
     createdAt: new Date(jobData.timestamp),
     updatedAt: jobData.finishedOn ? new Date(jobData.finishedOn) : new Date(),
     duration: jobData.finishedOn && jobData.processedOn ?
       jobData.finishedOn - jobData.processedOn : undefined,
-    command: `${parsedJobData.executionPath || 'python'} ${parsedJobData.script} --account ${queueName} ${parsedJobData.arguments || ''}`.trim(),
+    command: `${jobData.data.executionPath || 'python'} ${jobData.data.script} --account ${queueName} ${jobData.data.arguments || ''}`.trim(),
 
-    parameters: parsedJobData,
+    parameters: jobData.data,
     logs: [],
     progress: jobData.progress || 0,
     isFailed: !!jobData.failedReason || false,
@@ -445,14 +445,12 @@ export default function JobDetails() {
                   </span>
                 </div>
 
-                {job.status !== "active" && job.status !== "waiting" && job.status !== "delayed" && (
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">
                       {job.status === "completed" ? "Completed" : "Failed"}: {format(job.updatedAt, "MMM d, yyyy HH:mm:ss")}
                     </span>
                   </div>
-                )}
 
                 {job.duration && (
                   <div className="flex items-center gap-2">

@@ -22,6 +22,7 @@ export interface JobData {
   script: string;
   action: string;
   account: string;
+  pid?: number;
   [key: string]: any; // Allow for additional properties
 }
 
@@ -54,7 +55,7 @@ export interface QueueDetailResponse {
   name: string;
   counts: Counts;
   lastUpdatedTime?: number | null;
-  jobs: Job[];
+  jobs: JobJson[];
 }
 
 // Enhanced QueueDetails interface with jobsByStatus
@@ -71,36 +72,7 @@ export interface QueueDetails {
 }
 
 // Job interface aligned with backend JobJson
-export interface Job {
-  name: string;
-  data: {
-    script: string;
-    arguments?: string;
-    executionPath?: string;
-    pid?: number;
-    [key: string]: any;
-  };
-  opts?: {
-    attempts: number;
-    [key: string]: any;
-  };
-  id: string;
-  progress: number;
-  returnvalue?: {
-    completedAt?: string;
-    [key: string]: any;
-  };
-  stacktrace: any[];
-  delay: number;
-  priority: number;
-  attemptsStarted: number;
-  attemptsMade: number;
-  timestamp: number;
-  queueQualifiedName?: string;
-  finishedOn?: number;
-  processedOn?: number;
-  failedReason?: string;
-}
+export type Job = Omit<JobJson, 'data'> & { data: JobData };
 
 export type JobStatus =
   | 'latest'

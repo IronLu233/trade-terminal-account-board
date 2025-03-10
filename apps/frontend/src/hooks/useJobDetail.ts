@@ -1,3 +1,4 @@
+import { parseJobWithData } from '@/lib/utils';
 import { Job } from '@/types/queue';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { JobJson } from 'bullmq';
@@ -5,14 +6,14 @@ import { JobJson } from 'bullmq';
 export const useJobDetail = (queueName: string, jobId: string) => {
   return useQuery({
     queryKey: ['job', queueName, jobId],
-    queryFn: async (): Promise<JobJson> => {
+    queryFn: async (): Promise<Job> => {
       try {
         const response = await fetch(`/api/v2/queue/${queueName}/${jobId}`);
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
         const data: JobJson = await response.json();
-        return data;
+        return parseJobWithData(data);
       } catch (error) {
         console.error('Error fetching job details:', error);
         throw error;
