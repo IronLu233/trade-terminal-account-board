@@ -18,13 +18,28 @@ export default function StatsGrid() {
     });
   }
 
-  const queueStats: QueueStats[] = (data?.queues || []).map(queue => ({
-    queueName: queue.name || '',
-    running: queue.counts?.active || 0,
-    successful: queue.counts?.completed || 0,
-    failed: queue.counts?.failed || 0,
-    lastUpdated: queue.latestJobUpdatedTime ? new Date(queue.latestJobUpdatedTime) : null
-  }));
+
+  const queueStats: QueueStats[] = (data?.queues || [])
+    .map(queue => ({
+      queueName: queue.name || '',
+      running: queue.counts?.active || 0,
+      successful: queue.counts?.completed || 0,
+      failed: queue.counts?.failed || 0,
+      lastUpdated: queue.latestJobUpdatedTime ? new Date(queue.latestJobUpdatedTime) : null
+    }))
+    .sort((a, b) => {
+      // If both have lastUpdated, sort by that (newest first)
+      if (a.lastUpdated && b.lastUpdated) {
+        return b.lastUpdated.getTime() - a.lastUpdated.getTime();
+      }
+
+      // If only one has lastUpdated, that one comes first
+      if (a.lastUpdated) return -1;
+      if (b.lastUpdated) return 1;
+
+      // If neither has lastUpdated, sort by name alphabetically
+      return a.queueName.localeCompare(b.queueName);
+    });
 
   return (
     <div>

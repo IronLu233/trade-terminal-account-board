@@ -1,6 +1,7 @@
 import { type FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import si from "systeminformation";
+import { getRedisMemoryInfo } from "../services/redis";
 
 const systemInfoSchema = z.object({
   cpu: z.object({
@@ -18,6 +19,12 @@ const systemInfoSchema = z.object({
     free: z.number(),
     used: z.number(),
     usagePercentage: z.number(),
+  }),
+  redis: z.object({
+    usedMemory: z.number(),
+    usedMemoryHuman: z.string(),
+    totalSystemMemory: z.number(),
+    totalSystemMemoryHuman: z.string(),
   }),
 });
 
@@ -40,7 +47,6 @@ const systemInfoRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Get root filesystem or first available
       const rootFs = fsData.find((fs) => fs.mount === "/") || fsData[0];
-
       return {
         cpu: {
           usage: Number(cpuData.currentLoad.toFixed(2)),
@@ -60,6 +66,7 @@ const systemInfoRoutes: FastifyPluginAsync = async (fastify) => {
           used: rootFs.used,
           usagePercentage: Number(rootFs.use),
         },
+        redis: await getRedisMemoryInfo(),
       };
     }
   );

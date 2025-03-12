@@ -95,6 +95,21 @@ export default function Dashboard() {
                     />
                   </div>
                 </div>
+
+                <div>
+                  <div className="flex justify-between mb-1 text-sm">
+                    <span>Redis Memory</span>
+                    <span>
+                      {systemInfo.redis.usedMemoryHuman}/{systemInfo.redis.totalSystemMemoryHuman} ({Math.round((systemInfo.redis.usedMemory / systemInfo.redis.totalSystemMemory) * 100)}%)
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-500 rounded-full"
+                      style={{ width: `${(systemInfo.redis.usedMemory / systemInfo.redis.totalSystemMemory) * 100}%` }}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

@@ -229,8 +229,12 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
           executionPath: template.executionPath,
         },
         {
-          removeOnComplete: 300,
-          removeOnFail: 300,
+          removeOnComplete: {
+            age: 3600 * 24 * 7,
+          },
+          removeOnFail: {
+            age: 3600 * 24 * 7,
+          },
         }
       );
 

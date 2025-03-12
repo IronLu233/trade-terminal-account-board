@@ -17,10 +17,16 @@ interface SystemInfo {
     used: number;
     usagePercentage: number;
   };
+  redis: {
+    usedMemory: number;
+    usedMemoryHuman: string;
+    totalSystemMemory: number;
+    totalSystemMemoryHuman: string;
+  };
 }
 
 async function fetchSystemInfo(): Promise<SystemInfo> {
-  const response = await fetch('/api/systemInfo');
+  const response = await fetch('/api/v2/systemInfo');
   if (!response.ok) {
     throw new Error('Failed to fetch system info');
   }

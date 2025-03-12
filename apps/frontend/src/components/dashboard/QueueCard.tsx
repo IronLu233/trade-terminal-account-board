@@ -10,7 +10,6 @@ interface QueueCardProps {
 
 export default function QueueCard({ queue }: QueueCardProps) {
   const { queueName, running, successful, failed, lastUpdated } = queue;
-
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-muted/50 pb-2">
