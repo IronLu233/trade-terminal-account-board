@@ -12,7 +12,6 @@ import {
   Search,
   X,
   Copy,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,7 +127,7 @@ export default function JobDetails() {
     updatedAt: jobData.finishedOn ? new Date(jobData.finishedOn) : new Date(),
     duration: jobData.finishedOn && jobData.processedOn ?
       jobData.finishedOn - jobData.processedOn : undefined,
-    command: `${jobData.data.executionPath || 'python'} ${jobData.data.script} --account ${queueName} ${jobData.data.arguments || ''}`.trim(),
+    command: jobData.data.command ?? ' ',
 
     parameters: jobData.data,
     logs: [],

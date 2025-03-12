@@ -66,6 +66,7 @@ export function setupBullMQProcessor(queueName: string) {
         job.updateData({
           ...job.data,
           pid: child.pid,
+          command: ["pipenv", ...argv].join(" "),
         });
         return { jobId: `This is the return value of job (${job.id})` };
       });

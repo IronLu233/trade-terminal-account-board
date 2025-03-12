@@ -23,6 +23,7 @@ export interface JobData {
   action: string;
   account: string;
   pid?: number;
+  command?: string;
   [key: string]: any; // Allow for additional properties
 }
 

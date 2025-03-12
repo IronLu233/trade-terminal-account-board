@@ -3,4 +3,5 @@ export type JobPayload = {
   arguments?: string;
   executionPath?: string;
   pid?: number;
+  command?: string;
 };
