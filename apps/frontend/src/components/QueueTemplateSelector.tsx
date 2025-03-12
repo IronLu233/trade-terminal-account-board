@@ -11,7 +11,7 @@ import { useTemplates, useRunTemplate } from "@/hooks/useTemplates";
 import { Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 interface QueueTemplateSelectorProps {
   queueName: string;
@@ -62,8 +62,7 @@ export function QueueTemplateSelector({ queueName }: QueueTemplateSelectorProps)
         });
 
         // Refetch queue data to update the counts
-        queryClient.invalidateQueries({ queryKey: ['queues'] });
-
+        queryClient.invalidateQueries({ queryKey: ['queue'] });
         // Reset the selected template
         setSelectedTemplateId(templates[0].id.toString());
       }

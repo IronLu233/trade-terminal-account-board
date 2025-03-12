@@ -368,24 +368,26 @@ export default function JobDetails() {
             Refresh
           </Button>
 
-          <TooltipProvider>
-            <Tooltip>
+            {job.status === "active" && (
+            <TooltipProvider>
+              <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setIsTerminateDialogOpen(true)}
-                  disabled={isTerminating}
+                variant="destructive"
+                size="sm"
+                onClick={() => setIsTerminateDialogOpen(true)}
+                disabled={isTerminating}
                 >
-                  <X className="mr-2 h-4 w-4" />
-                  Terminate Job
+                <X className="mr-2 h-4 w-4" />
+                Terminate Job
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
                 <p>Terminate this job</p>
               </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+              </Tooltip>
+            </TooltipProvider>
+            )}
         </div>
       </div>
 

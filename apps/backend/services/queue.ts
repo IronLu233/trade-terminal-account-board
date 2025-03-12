@@ -77,4 +77,5 @@ export async function createQueue(name: string) {
   const queue = createQueueMQ(name);
   queueMap.set(name, queue);
   setupBullMQProcessor(name);
+  return queue;
 }

@@ -11,13 +11,6 @@ export default defineConfig({
   dev: {
     writeToDisk: true,
   },
-  tools: {
-    htmlPlugin: {
-      filename:
-        process.env.NODE_ENV === 'production' ? 'index.ejs' : 'index.html',
-    },
-  },
-
   server: {
     port: 9000,
     proxy: {

@@ -249,19 +249,11 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         // Send SIGINT signal (Ctrl+C) to the process
-        try {
-          process.kill(pid, "SIGINT");
-        } finally {
-          job.moveToFailed(
-            new Error("User Terminated task"),
-            job.token!,
-            false
-          );
-          return reply.send({
-            success: true,
-            message: `SIGINT signal sent to process ${pid}`,
-          });
-        }
+        process.kill(pid, "SIGINT");
+        return reply.send({
+          success: true,
+          message: `SIGINT signal sent to process ${pid}`,
+        });
       } catch (error) {
         return reply.code(500).send({
           error: `An error occurred: ${error instanceof Error ? error.message : String(error)}`,

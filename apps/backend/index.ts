@@ -1,6 +1,3 @@
-import { createBullBoard } from "@bull-board/api";
-import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
-import { FastifyAdapter } from "@bull-board/fastify";
 import fastify from "fastify";
 import { setupBullMQProcessor } from "./services/processor";
 import {
@@ -15,7 +12,7 @@ import systemInfoRoutes from "./routes/system-info";
 import queueRoutes from "./routes/queue";
 import { setupQueues } from "./services/queue";
 import path from "path";
-import fastifyView from "@fastify/view";
+import fastifyStatic from "@fastify/static";
 
 const run = async () => {
   // Initialize database connection
@@ -49,39 +46,18 @@ const run = async () => {
     transformSpecificationClone: true,
   });
 
-  const serverAdapter = new FastifyAdapter();
-
   const uiBasePath = path.dirname(require.resolve("frontend/package.json"));
 
-  createBullBoard({
-    queues: Array.from(queues.values().map((q) => new BullMQAdapter(q))),
-    serverAdapter,
-    options: {
-      uiBasePath:
-        process.env.NODE_ENV === "production" ? uiBasePath : undefined,
-      uiConfig: {
-        boardTitle: "策略管理中心",
-      },
-    },
-  });
-
-  app.register(fastifyView, {
-    engine: {
-      ejs: require("ejs"),
-    },
+  app.register(fastifyStatic, {
     root: path.join(uiBasePath, "dist"),
+    maxAge: "1d",
+    immutable: true,
   });
 
   // Register template routes
   app.register(templateRoutes, { prefix: "/api/v2/template" });
   app.register(systemInfoRoutes, { prefix: "/api/v2/systemInfo" });
   app.register(queueRoutes, { prefix: "/api/v2/queue" });
-
-  serverAdapter.setBasePath("/");
-  app.register(serverAdapter.registerPlugin(), {
-    prefix: "/",
-    basePath: "/",
-  });
 
   // Add catch-all route to handle SPA routing
   app.setNotFoundHandler(async (request, reply) => {
@@ -93,7 +69,7 @@ const run = async () => {
       }
 
       // For all other routes, serve the frontend app
-      return reply.view("index.ejs", {});
+      return reply.sendFile("index.html", { maxAge: 0, immutable: false });
     }
 
     // Return 404 for non-GET requests

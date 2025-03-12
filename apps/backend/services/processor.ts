@@ -7,7 +7,7 @@ import logger from "../utils/logger";
 export function setupBullMQProcessor(queueName: string) {
   logger.info(`Setting up BullMQ processor for queue: ${queueName}`);
 
-  new Worker<JobPayload, { completedAt: Date }>(
+  const worker = new Worker<JobPayload, { completedAt: Date }>(
     queueName,
     async (job) => {
       logger.info(`Starting job ${job.id} from queue ${queueName}`, {
@@ -45,8 +45,9 @@ export function setupBullMQProcessor(queueName: string) {
         let stderr = "";
 
         child.stderr.on("data", (data: Buffer) => {
-          stderr += `${data.toString()}`;
+          stderr = `${data.toString()}`;
           logger.warn(`Job ${job.id} stderr:`, { stderr: data.toString() });
+          job.log(`${new Date().toISOString()}[WARN]${data.toString()}`);
         });
 
         child.stdout.on("data", (data: Buffer) => {
@@ -71,6 +72,8 @@ export function setupBullMQProcessor(queueName: string) {
         return { jobId: `This is the return value of job (${job.id})` };
       });
     },
-    { connection: redisOptions }
+    { connection: redisOptions, maxStalledCount: 0 }
   );
+
+  return worker;
 }
