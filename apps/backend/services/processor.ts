@@ -18,7 +18,14 @@ export function setupBullMQProcessor(queueName: string) {
       return new Promise((resolve, reject) => {
         const { script, arguments: args, executionPath } = job.data;
 
-        const argv = ["-u", script, "--account", job.queueName];
+        const argv = [
+          "run",
+          "python3",
+          "-u",
+          script,
+          "--account",
+          job.queueName,
+        ];
         if (args) {
           // Properly split arguments by any whitespace and filter out empty strings
           const parsedArgs = args.match(/\S+/g) || [];
@@ -31,7 +38,7 @@ export function setupBullMQProcessor(queueName: string) {
           executionPath: executionPath || process.env.SCRIPT_PWD,
         });
 
-        const child = spawn(process.env.PYTHON_EXEC_BIN || "python", argv, {
+        const child = spawn("pipenv", argv, {
           cwd: executionPath || process.env.SCRIPT_PWD,
         });
 
