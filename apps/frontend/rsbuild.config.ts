@@ -8,6 +8,9 @@ export default defineConfig({
       index: './src/main.tsx',
     },
   },
+  html: {
+    title: 'TT Account Manager',
+  },
   dev: {
     writeToDisk: true,
   },
