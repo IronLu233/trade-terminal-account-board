@@ -154,13 +154,11 @@ export default function JobDetails() {
 
   // Auto-scroll to bottom when new logs come in
   useEffect(() => {
-    if (autoScroll && job?.status === "active" && mergedLogs.length > 0) {
-      setTimeout(() => {
+    if ((autoScroll && job?.status === "active" && mergedLogs.length > 0) || job?.status === 'completed') {
         // Direct scrolling of the container div instead of using scrollIntoView
         if (scrollAreaContainerRef.current) {
           scrollAreaContainerRef.current.scrollTop = scrollAreaContainerRef.current.scrollHeight;
         }
-      }, 100);
     }
   }, [mergedLogs, job?.status, autoScroll]);
 
@@ -641,12 +639,10 @@ export default function JobDetails() {
             </div>
 
             <Card className="bg-muted dark:bg-slate-950 border-none">
-              <ScrollArea className="h-[400px] w-full rounded-md p-4">
-                {/* Add a div inside ScrollArea that we can reference and track scrolling on */}
                 <div
                   ref={scrollAreaContainerRef}
                   onScroll={handleScroll}
-                  className="h-full overflow-auto"
+                  className="h-[400px] rounded-md p-4 overflow-auto"
                 >
                   <div className="font-mono text-sm whitespace-pre-wrap">
                     {filteredLogs && filteredLogs.length > 0 ? (
@@ -684,7 +680,6 @@ export default function JobDetails() {
                     <div ref={logsEndRef} />
                   </div>
                 </div>
-              </ScrollArea>
             </Card>
 
             <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
