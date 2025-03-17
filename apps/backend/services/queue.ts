@@ -3,6 +3,7 @@ import { Job, Queue as QueueMQ, type JobJson } from "bullmq";
 import { redisOptions } from "../config/redis";
 import { configDb } from "../database/lowDb";
 import { setupBullMQProcessor } from "./processor";
+import { pick } from "lodash-es";
 
 const queueMap = new Map<string, QueueMQ>();
 
@@ -69,7 +70,13 @@ export async function getQueueListJson() {
       name: q.name,
       counts: await q.getJobCounts(),
       latestJobUpdatedTime: await getQueueLatestUpdatedTime(q),
-      lastJob: jobJson,
+      lastJob: pick(jobJson, [
+        "name",
+        "id",
+        "finishedOn",
+        "processedOn",
+        "failedReason",
+      ]),
     });
   }
 
