@@ -57,11 +57,21 @@ export async function getQueueListJson() {
       0,
       1
     )) as Job[];
+
+    const jobJson = lastJob?.asJSON();
+
+    if (jobJson && jobJson.failedReason) {
+      // Truncate failedReason if it's too long (limit to 100 characters)
+      if (jobJson.failedReason.length > 300) {
+        jobJson.failedReason = jobJson.failedReason.substring(0, 100) + "...";
+      }
+    }
+
     result.push({
       name: q.name,
       counts: await q.getJobCounts(),
       latestJobUpdatedTime: await getQueueLatestUpdatedTime(q),
-      lastJob: lastJob?.asJSON() as JobJson | undefined,
+      lastJob: jobJson,
     });
   }
 
