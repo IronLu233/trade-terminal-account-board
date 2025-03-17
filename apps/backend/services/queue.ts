@@ -61,10 +61,8 @@ export async function getQueueListJson() {
     const jobJson = lastJob?.asJSON();
 
     if (jobJson && jobJson.failedReason) {
-      // Truncate failedReason if it's too long (limit to 100 characters)
-      if (jobJson.failedReason.length > 300) {
-        jobJson.failedReason = jobJson.failedReason.substring(0, 100) + "...";
-      }
+      // Truncate failedReason
+      jobJson.failedReason = "...";
     }
 
     result.push({
