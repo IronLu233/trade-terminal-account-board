@@ -10,6 +10,7 @@ import { initializeDatabase } from "./database/sqlite";
 import templateRoutes from "./routes/template";
 import systemInfoRoutes from "./routes/system-info";
 import queueRoutes from "./routes/queue";
+import dashboardRoutes from "./routes/dashboard";
 import { setupQueues } from "./services/queue";
 import path from "path";
 import fastifyStatic from "@fastify/static";
@@ -58,6 +59,7 @@ const run = async () => {
   app.register(templateRoutes, { prefix: "/api/v2/template" });
   app.register(systemInfoRoutes, { prefix: "/api/v2/systemInfo" });
   app.register(queueRoutes, { prefix: "/api/v2/queue" });
+  app.register(dashboardRoutes, { prefix: "/api/v2/dashboard" });
 
   // Add catch-all route to handle SPA routing
   app.setNotFoundHandler(async (request, reply) => {

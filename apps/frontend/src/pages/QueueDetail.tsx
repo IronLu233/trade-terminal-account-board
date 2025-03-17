@@ -57,14 +57,10 @@ export default function QueueDetail() {
   const { queueName } = useParams<{ queueName: string }>();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const statusParam = searchParams.get("status") as JobStatus || "latest";
   const [currentTab, setCurrentTab] = useState<JobStatus>(statusParam);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  useEffect(() => {
-    setSearchParams({ status: currentTab });
-  }, [currentTab, setSearchParams]);
 
   // Use the new useQueueDetail hook
   const { data: queueDetail, error, refetch, isLoading } = useQueueDetail({
@@ -492,7 +488,7 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
           <TableRow>
             <TableHead className="w-[80px]">ID</TableHead>
             <TableHead>Name</TableHead>
-            <TableHead>Script</TableHead>
+            <TableHead>Template</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Completed</TableHead>
             <TableHead>Duration</TableHead>
@@ -512,7 +508,7 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
                   {job.name}
                 </Link>
               </TableCell>
-              <TableCell>{job.data?.script || "N/A"}</TableCell>
+              <TableCell>{job.data.templateName || job.data.script || "N/A"}</TableCell>
               <TableCell>{formatDate(job.timestamp)}</TableCell>
               <TableCell>
                 {job.finishedOn

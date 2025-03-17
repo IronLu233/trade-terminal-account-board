@@ -7,6 +7,7 @@ import {
   JobStatus,
 } from '@/types/queue';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { JobJson } from 'bullmq';
 
 interface FetchQueuesResponse {
   queues: JobList;
@@ -35,7 +36,10 @@ const fetchQueues = async (): Promise<FetchQueuesResponse> => {
   );
 
   return {
-    queues: data.list,
+    queues: data.list.map((it) => ({
+      ...it,
+      lastJob: it.lastJob && parseJobWithData(it.lastJob as unknown as JobJson),
+    })),
   };
 };
 

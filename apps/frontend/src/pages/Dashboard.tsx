@@ -1,4 +1,4 @@
-import StatsGrid from '@/components/dashboard/StatsGrid';
+import RecentJobs from '@/components/dashboard/RecentJobs';
 import {
   Card,
   CardContent,
@@ -115,7 +115,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <StatsGrid  />
+        <RecentJobs  />
       </div>
     </ErrorBoundary>
   );

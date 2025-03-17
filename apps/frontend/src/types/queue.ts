@@ -24,6 +24,7 @@ export interface JobData {
   account: string;
   pid?: number;
   command?: string;
+  templateName: string;
   [key: string]: any; // Allow for additional properties
 }
 
@@ -37,7 +38,8 @@ export type JobList = {
   name: string;
   counts: Counts;
   latestJobUpdatedTime?: number | null;
-  jobs: JobJson[];
+
+  lastJob?: Job;
 }[];
 
 export interface Counts {
@@ -73,7 +75,10 @@ export interface QueueDetails {
 }
 
 // Job interface aligned with backend JobJson
-export type Job = Omit<JobJson, 'data'> & { data: JobData };
+export type Job = Omit<JobJson, 'data'> & {
+  data: JobData;
+  queueName?: string;
+};
 
 export type JobStatus =
   | 'latest'

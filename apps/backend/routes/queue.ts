@@ -1,7 +1,7 @@
 import { type FastifyPluginAsync } from "fastify";
 import {
   getQueueByName,
-  getQueueList,
+  getQueueListJson,
   getQueueWithJobs,
   createQueue,
 } from "../services/queue";
@@ -22,6 +22,7 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
                 name: z.string(),
                 counts: z.record(z.number()),
                 latestJobUpdatedTime: z.number().nullable().optional(),
+                lastJob: z.record(z.any(), z.any()).optional(),
               })
             ),
           }),
@@ -29,7 +30,7 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const queues = await getQueueList();
+      const queues = await getQueueListJson();
       return { list: queues };
     }
   );

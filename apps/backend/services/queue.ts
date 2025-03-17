@@ -1,4 +1,4 @@
-import { Job, Queue as QueueMQ, type ConnectionOptions } from "bullmq";
+import { Job, Queue as QueueMQ, type JobJson } from "bullmq";
 
 import { redisOptions } from "../config/redis";
 import { configDb } from "../database/lowDb";
@@ -47,19 +47,29 @@ export async function getQueueWithJobs(queueName: string) {
   };
 }
 
-export async function getQueueList() {
+export async function getQueueListJson() {
   const queues = Array.from(queueMap.values());
   const result = [];
 
   for (const q of queues) {
+    const [lastJob] = (await q.getJobs(
+      ["active", "completed", "failed", "repeat"],
+      0,
+      1
+    )) as Job[];
     result.push({
       name: q.name,
       counts: await q.getJobCounts(),
       latestJobUpdatedTime: await getQueueLatestUpdatedTime(q),
+      lastJob: lastJob?.asJSON() as JobJson | undefined,
     });
   }
 
   return result;
+}
+
+export function getQueueList() {
+  return Array.from(queueMap.values());
 }
 
 export async function createQueue(name: string) {

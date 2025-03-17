@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ErrorBoundary } from "react-error-boundary";
-import { AlertCircle, RefreshCw, Activity, CheckCircle, XCircle, X } from "lucide-react";
+import { AlertCircle, RefreshCw, Activity, CheckCircle, XCircle, X, Calendar, FileText, Clock } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -22,6 +22,32 @@ import {
 } from "@/components/ui/select";
 import { QueueTemplateSelector } from "@/components/QueueTemplateSelector";
 import { CreateQueueDialog } from "@/components/queues/CreateQueueDialog";
+import { Badge } from "@/components/ui/badge";
+import { getJobStatus } from "@/lib/utils";
+
+// Helper function to format job timestamp
+function formatJobTime(timestamp: number | undefined): string {
+  if (!timestamp) return 'N/A';
+  try {
+    return formatDistanceToNow(timestamp, { addSuffix: true });
+  } catch (error) {
+    return 'Invalid date';
+  }
+}
+
+// Job status badge styling helper
+function getStatusBadgeClass(status: string): string {
+  switch (status) {
+    case 'completed':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'failed':
+      return 'bg-red-100 text-red-800 border-red-200';
+    case 'active':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+}
 
 function ErrorFallback() {
   return (
@@ -41,18 +67,31 @@ export default function QueueList() {
   const [initialQueueOrder, setInitialQueueOrder] = useState<string[]>([]);
   const isFirstSuccessfulLoad = useRef(true);
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useQueueList();
+  const { data, isLoading, isError, refetch, isFetching, error } = useQueueList();
   const queues = data?.queues || [];
 
-  // Transform queue data to match the expected format
-  const transformedQueues = queues.map(queue => ({
-    queueName: queue.name || "",
-    running: queue.counts?.active || 0,
-    successful: queue.counts?.completed || 0,
-    failed: queue.counts?.failed || 0,
-    lastUpdated: queue.latestJobUpdatedTime ? new Date(queue.latestJobUpdatedTime) : null,
-    latestJobUpdatedTime: queue.latestJobUpdatedTime || null,
-  }));
+  // Transform queue data to match the expected format with latest job info
+  const transformedQueues = queues.map(queue => {
+    // Parse last job data if available
+    const lastJob = queue.lastJob ? {
+      id: queue.lastJob.id,
+      status: getJobStatus(queue.lastJob),
+      createdAt: queue.lastJob.timestamp,
+      templateName: typeof queue.lastJob.data === 'string'
+        ? JSON.parse(queue.lastJob.data).templateName
+        : queue.lastJob.data?.templateName || "Unknown template"
+    } : null;
+
+    return {
+      queueName: queue.name || "",
+      running: queue.counts?.active || 0,
+      successful: queue.counts?.completed || 0,
+      failed: queue.counts?.failed || 0,
+      lastUpdated: queue.latestJobUpdatedTime ? new Date(queue.latestJobUpdatedTime) : null,
+      latestJobUpdatedTime: queue.latestJobUpdatedTime || null,
+      lastJob
+    };
+  });
 
   // Set up the initial queue order once when data first loads successfully
   useEffect(() => {
@@ -217,6 +256,38 @@ export default function QueueList() {
                               {queue.lastUpdated && (
                                 <div className="text-xs text-muted-foreground">
                                   Last updated: {formatDistanceToNow(queue.lastUpdated)} ago
+                                </div>
+                              )}
+
+                              {/* Latest Job Information Section */}
+                              {queue.lastJob && (
+                                <div className="mt-2 text-sm border-l-2 border-gray-200 pl-3">
+                                  <div className="font-medium text-gray-700 mb-1">Latest Job</div>
+                                  <div className="grid grid-cols-1 gap-1">
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3 text-gray-500" />
+                                      <span>Created: {formatJobTime(queue.lastJob.createdAt)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <FileText className="h-3 w-3 text-gray-500" />
+                                      <span>Template: {queue.lastJob.templateName}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Badge className={getStatusBadgeClass(queue.lastJob.status)}>
+                                        {queue.lastJob.status}
+                                      </Badge>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-xs"
+                                        asChild
+                                      >
+                                        <Link to={`/queues/jobs/${queue.queueName}/${queue.lastJob.id}`}>
+                                          View Job
+                                        </Link>
+                                      </Button>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>

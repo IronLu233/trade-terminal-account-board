@@ -227,6 +227,7 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
           script: template.script,
           arguments: template.arguments,
           executionPath: template.executionPath,
+          templateName: template.name,
         },
         {
           removeOnComplete: {

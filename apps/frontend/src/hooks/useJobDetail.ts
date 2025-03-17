@@ -71,3 +71,23 @@ export const useTerminateJob = (queueName: string, jobId: string) => {
     },
   });
 };
+
+export const useRecentJobs = () => {
+  return useQuery({
+    queryKey: ['recentJobs'],
+    queryFn: async (): Promise<Job[]> => {
+      try {
+        const response = await fetch('/api/v2/dashboard/recentJobs');
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data: JobJson[] = await response.json();
+        return data.map((job) => parseJobWithData(job));
+      } catch (error) {
+        console.error('Error fetching recent jobs:', error);
+        throw error;
+      }
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+};
