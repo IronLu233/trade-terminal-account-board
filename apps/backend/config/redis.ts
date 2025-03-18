@@ -1,7 +1,8 @@
 import type { RedisOptions } from "bullmq";
+import { Env } from "config";
 
 export const redisOptions: RedisOptions = {
-  port: Number(process.env.REDIS_PORT!) || 6379,
-  host: process.env.REDIS_HOST || 'localhost',
-  password: process.env.REDIS_PASS || '',
+  port: Number(Env.REDIS_PORT!) || 6379,
+  host: Env.REDIS_HOST || "localhost",
+  password: Env.REDIS_PASS || "",
 };

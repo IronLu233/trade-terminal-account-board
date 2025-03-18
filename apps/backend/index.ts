@@ -13,6 +13,7 @@ import dashboardRoutes from "./routes/dashboard";
 import { setupQueues } from "./services/queue";
 import path from "path";
 import fastifyStatic from "@fastify/static";
+import { Env } from "config";
 
 const run = async () => {
   // Initialize database connection
@@ -71,7 +72,7 @@ const run = async () => {
     // Return 404 for non-GET requests
     return reply.code(404).send({ error: "Not found" });
   });
-  const port = parseInt(process.env.PORT || "3000", 10);
+  const port = Env.PORT;
   await app.listen({ host: "0.0.0.0", port });
   console.log(`For the UI, open http://localhost:${port}`);
 };

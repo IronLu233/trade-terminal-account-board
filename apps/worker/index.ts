@@ -1,6 +1,6 @@
 import { logger, type JobPayload } from "common";
 import { Worker } from "bullmq";
-import { configDb, redisOptions, RedisChannel } from "config";
+import { configDb, redisOptions, RedisChannel, Env } from "config";
 import { spawn } from "child_process";
 import Redis from "ioredis";
 import z from "zod";
@@ -36,11 +36,11 @@ export function setupBullMQWorker(queueName: string) {
         logger.debug(`Spawning Python process for job ${job.id}`, {
           script,
           argv,
-          executionPath: executionPath || process.env.SCRIPT_PWD,
+          executionPath: executionPath || Env.SCRIPT_PWD,
         });
 
         const child = spawn("pipenv", argv, {
-          cwd: executionPath || process.env.SCRIPT_PWD,
+          cwd: executionPath || Env.SCRIPT_PWD,
         });
 
         let stderr = "";

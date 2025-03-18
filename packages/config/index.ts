@@ -2,9 +2,7 @@ import YAML from "yaml";
 import path from "path";
 import { DataFile } from "lowdb/node";
 
-if (typeof process !== "undefined") {
-  require("./env");
-}
+export * from "./env";
 
 export type Config = {
   accounts: string[];
