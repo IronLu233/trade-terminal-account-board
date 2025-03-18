@@ -91,3 +91,25 @@ export const useRecentJobs = () => {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 };
+export const useRemoveJob = () => {
+  return useMutation({
+    mutationFn: async ({
+      queueName,
+      jobId,
+    }: {
+      queueName: string;
+      jobId: string;
+    }) => {
+      const response = await fetch(`/api/v2/queue/${queueName}/${jobId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove job');
+      }
+
+      return response.json();
+    },
+  });
+};

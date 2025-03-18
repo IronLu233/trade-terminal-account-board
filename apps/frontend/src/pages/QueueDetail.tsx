@@ -53,6 +53,10 @@ import { useRetryJob } from "@/hooks/useJobDetail";
 // Add this import at the top with other imports
 import { QueueTemplateSelector } from "@/components/QueueTemplateSelector";
 
+// Add these imports at the top
+import { RemoveJobDialog } from "@/components/dialogs/RemoveJobDialog";
+import { useRemoveJob } from "@/hooks/useJobDetail";
+
 export default function QueueDetail() {
   const { queueName } = useParams<{ queueName: string }>();
   const navigate = useNavigate();
@@ -428,7 +432,10 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
   currentTab: JobStatus
 }) {
   const [retryJobId, setRetryJobId] = useState<string | null>(null);
+  const [removeJobId, setRemoveJobId] = useState<string | null>(null);
+
   const retryJob = useRetryJob(queueName, retryJobId || '', currentTab);
+  const removeJob = useRemoveJob();
 
   const handleRetryConfirm = async () => {
     if (!retryJobId) return;
@@ -443,8 +450,25 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
     }
   };
 
-  // Get the job being retried
+  const handleRemoveConfirm = async () => {
+    if (!removeJobId) return;
+
+    try {
+      await removeJob.mutateAsync({
+        queueName,
+        jobId: removeJobId
+      });
+      refetch(); // Refetch the jobs list
+    } catch (error) {
+      console.error('Failed to remove job:', error);
+    } finally {
+      setRemoveJobId(null);
+    }
+  };
+
+  // Get the jobs being modified
   const jobToRetry = jobs.find(job => job.id === retryJobId);
+  const jobToRemove = jobs.find(job => job.id === removeJobId);
 
   // Sort jobs by finishedOn (most recent first) and then by processedOn
   const sortedJobs = useMemo(() => {
@@ -554,10 +578,15 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
                     <DropdownMenuItem asChild>
                       <Link to={`/queues/jobs/${queueName}/${job.id}`}>View Details</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setRetryJobId(job.id)}>
+                    {/* <DropdownMenuItem onClick={() => setRetryJobId(job.id)}>
                       Retry Job
+                    </DropdownMenuItem> */}
+                    <DropdownMenuItem
+                      onClick={() => setRemoveJobId(job.id)}
+                      className="text-red-600"
+                    >
+                      Remove Job
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600">Remove Job</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -572,6 +601,16 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
           onConfirm={handleRetryConfirm}
           jobId={jobToRetry.id}
           jobName={jobToRetry.name}
+        />
+      )}
+
+      {jobToRemove && (
+        <RemoveJobDialog
+          isOpen={!!removeJobId}
+          onClose={() => setRemoveJobId(null)}
+          onConfirm={handleRemoveConfirm}
+          jobId={jobToRemove.id}
+          jobName={jobToRemove.name}
         />
       )}
     </div>

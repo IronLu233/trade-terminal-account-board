@@ -263,6 +263,66 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   );
+
+  // Delete a specific job by ID from a queue
+  fastify.delete<{
+    Params: {
+      queueName: string;
+      jobId: string;
+    };
+  }>(
+    "/:queueName/:jobId",
+    {
+      schema: {
+        params: z.object({
+          queueName: z.string(),
+          jobId: z.string(),
+        }),
+        response: {
+          200: z.object({
+            success: z.boolean(),
+            message: z.string(),
+          }),
+          404: z.object({
+            error: z.string(),
+          }),
+          500: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { queueName, jobId } = request.params;
+
+      try {
+        const queue = getQueueByName(queueName);
+
+        if (!queue) {
+          return reply
+            .code(404)
+            .send({ error: `Queue '${queueName}' not found` });
+        }
+
+        const job: Job = await queue.getJob(jobId);
+
+        if (!job) {
+          return reply.code(404).send({ error: `Job '${jobId}' not found` });
+        }
+
+        await job.remove();
+
+        return reply.send({
+          success: true,
+          message: `Job ${jobId} has been removed from queue ${queueName}`,
+        });
+      } catch (error) {
+        return reply.code(500).send({
+          error: `An error occurred: ${error instanceof Error ? error.message : String(error)}`,
+        });
+      }
+    }
+  );
 };
 
 export default queueRoutes;
