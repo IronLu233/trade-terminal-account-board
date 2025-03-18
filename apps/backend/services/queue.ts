@@ -77,7 +77,7 @@ export async function getQueueListJson() {
       name: q.name,
       counts: await q.getJobCounts(),
       latestJobUpdatedTime: await getQueueLatestUpdatedTime(q),
-      lastJob: {
+      lastJob: jobJson && {
         ...pick(jobJson, [
           "name",
           "id",
