@@ -76,7 +76,7 @@ export default function QueueList() {
     const lastJob = queue.lastJob ? {
       id: queue.lastJob.id,
       status: getJobStatus(queue.lastJob),
-      createdAt: queue.lastJob.timestamp,
+      createdAt: queue.lastJob.processedOn,
       templateName: typeof queue.lastJob.data === 'string'
         ? JSON.parse(queue.lastJob.data).templateName
         : queue.lastJob.data?.templateName || "Unknown template"

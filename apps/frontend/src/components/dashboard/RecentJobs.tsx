@@ -91,7 +91,7 @@ export default function RecentJobs() {
         <div>
           <CardTitle>Recent Jobs</CardTitle>
           <CardDescription>
-            Jobs that have been processed in the last 24 hours
+            Jobs that have been processed in the last 7 days
           </CardDescription>
         </div>
         <Button
