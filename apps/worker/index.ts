@@ -82,14 +82,24 @@ export function setupBullMQWorker(queueName: string) {
 const createWorkerMessageSchema = z.object({
   queueName: z.string(),
 });
+
+const workerInstances: Worker<JobPayload>[] = [];
+
+function closeAllWorkers() {
+  logger.info("close all workers");
+  return workerInstances.map((worker) => worker.close(true));
+}
+
 function handleCreateWorker(message: string) {
   const { queueName } = createWorkerMessageSchema.parse(JSON.parse(message));
-  return setupBullMQWorker(queueName);
+  workerInstances.push(setupBullMQWorker(queueName));
 }
 
 async function main() {
   const config = await configDb.read();
   const workers = config!.accounts.map(setupBullMQWorker);
+  workerInstances.push(...workers);
+
   const redis = new Redis({
     host: redisOptions.host,
     port: redisOptions.port,
@@ -102,6 +112,20 @@ async function main() {
       case RedisChannel.CreateWorker:
         return handleCreateWorker(message);
     }
+  });
+
+  process.on("exit", (code) => {
+    closeAllWorkers();
+  });
+
+  process.on("SIGINT", () => {
+    closeAllWorkers();
+    process.exit(0);
+  });
+
+  process.on("SIGTERM", () => {
+    closeAllWorkers();
+    process.exit(0);
   });
 }
 

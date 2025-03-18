@@ -249,16 +249,8 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.code(404).send({ error: "No PID found for this job" });
         }
 
-        try {
-          // Send SIGINT signal (Ctrl+C) to the process
-          process.kill(pid, "SIGINT");
-        } catch {
-          await job.moveToFailed(
-            new Error("user terminated"),
-            job.token!,
-            false
-          );
-        }
+        // Send SIGINT signal (Ctrl+C) to the process
+        process.kill(pid, "SIGINT");
 
         return reply.send({
           success: true,
