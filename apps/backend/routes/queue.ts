@@ -7,7 +7,7 @@ import {
 } from "../services/queue";
 import { z } from "zod";
 import type { Job } from "bullmq";
-import { type JobPayload } from "../utils/types";
+import { type JobPayload } from "common";
 
 const queueRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all queues

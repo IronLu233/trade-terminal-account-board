@@ -1,11 +1,12 @@
+import { logger, type JobPayload } from "common";
 import { Worker } from "bullmq";
-import { redisOptions } from "../config/redis";
-import type { JobPayload } from "../utils/types";
+import { configDb, redisOptions, RedisChannel } from "config";
 import { spawn } from "child_process";
-import logger from "../utils/logger";
+import Redis from "ioredis";
+import z from "zod";
 
-export function setupBullMQProcessor(queueName: string) {
-  logger.info(`Setting up BullMQ processor for queue: ${queueName}`);
+export function setupBullMQWorker(queueName: string) {
+  logger.info(`Setting up BullMQ worker for queue: ${queueName}`);
 
   const worker = new Worker<JobPayload, { completedAt: Date }>(
     queueName,
@@ -77,3 +78,31 @@ export function setupBullMQProcessor(queueName: string) {
 
   return worker;
 }
+
+const createWorkerMessageSchema = z.object({
+  queueName: z.string(),
+});
+function handleCreateWorker(message: string) {
+  const { queueName } = createWorkerMessageSchema.parse(JSON.parse(message));
+  return setupBullMQWorker(queueName);
+}
+
+async function main() {
+  const config = await configDb.read();
+  const workers = config!.accounts.map(setupBullMQWorker);
+  const redis = new Redis({
+    host: redisOptions.host,
+    port: redisOptions.port,
+    password: redisOptions.password,
+  });
+
+  await redis.subscribe(RedisChannel.CreateWorker);
+  redis.on("message", (channel, message) => {
+    switch (channel) {
+      case RedisChannel.CreateWorker:
+        return handleCreateWorker(message);
+    }
+  });
+}
+
+main();

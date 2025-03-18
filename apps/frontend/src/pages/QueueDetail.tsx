@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQueueDetail } from "../hooks/useQueueList";
 import { format } from "date-fns";
@@ -446,6 +446,32 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
   // Get the job being retried
   const jobToRetry = jobs.find(job => job.id === retryJobId);
 
+  // Sort jobs by finishedOn (most recent first) and then by processedOn
+  const sortedJobs = useMemo(() => {
+    return [...jobs].sort((a, b) => {
+      // If both have finishedOn, sort by finishedOn (most recent first)
+      if (a.finishedOn && b.finishedOn) {
+        return b.finishedOn - a.finishedOn;
+      }
+
+      // If only one has finishedOn, the one with finishedOn comes later
+      if (a.finishedOn) return -1;
+      if (b.finishedOn) return 1;
+
+      // If neither has finishedOn but both have processedOn, sort by processedOn
+      if (a.processedOn && b.processedOn) {
+        return b.processedOn - a.processedOn;
+      }
+
+      // If only one has processedOn, prioritize it
+      if (a.processedOn) return -1;
+      if (b.processedOn) return 1;
+
+      // Fallback to timestamp (creation time)
+      return b.timestamp - a.timestamp;
+    });
+  }, [jobs]);
+
   if (jobs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -497,7 +523,7 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {jobs.map((job) => (
+          {sortedJobs.map((job) => (
             <TableRow key={job.id}>
               <TableCell className="font-medium">{job.id}</TableCell>
               <TableCell className="max-w-[200px] truncate">

@@ -1,8 +1,7 @@
 import { Job, Queue as QueueMQ, type JobJson } from "bullmq";
 
-import { redisOptions } from "../config/redis";
-import { configDb } from "../database/lowDb";
-import { setupBullMQProcessor } from "./processor";
+import { redisOptions, configDb, RedisChannel } from "config";
+import { redis } from "../services/redis";
 import { pick } from "lodash-es";
 
 const queueMap = new Map<string, QueueMQ>();
@@ -39,7 +38,7 @@ export async function getQueueWithJobs(queueName: string) {
     throw new Error(`Queue with name "${queueName}" not found`);
   }
 
-  const jobs = await queue.getJobs(["active", "completed", "failed"]);
+  const jobs = await queue.getJobs();
   return {
     name: queue.name,
     counts: await queue.getJobCounts(),
@@ -53,11 +52,19 @@ export async function getQueueListJson() {
   const result = [];
 
   for (const q of queues) {
-    const [lastJob] = (await q.getJobs(
-      ["active", "completed", "failed", "repeat"],
-      0,
-      1
-    )) as Job[];
+    const [[lastActiveJob], [lastCompletedJob], [lastFailedJob]] =
+      (await Promise.all([
+        await q.getJobs("active", 0, 1),
+        await q.getJobs("completed", 0, 1),
+        await q.getJobs("failed", 0, 1),
+      ])) as [[Job], [Job], [Job]];
+
+    // Find the latest job among active, completed, and failed jobs
+    const lastJob = [lastActiveJob, lastCompletedJob, lastFailedJob]
+      .filter(Boolean)
+      .sort(
+        (a, b) => (b.asJSON().processedOn || 0) - (a.asJSON().processedOn || 0)
+      )[0];
 
     const jobJson = lastJob?.asJSON();
 
@@ -70,13 +77,16 @@ export async function getQueueListJson() {
       name: q.name,
       counts: await q.getJobCounts(),
       latestJobUpdatedTime: await getQueueLatestUpdatedTime(q),
-      lastJob: pick(jobJson, [
-        "name",
-        "id",
-        "finishedOn",
-        "processedOn",
-        "failedReason",
-      ]),
+      lastJob: {
+        ...pick(jobJson, [
+          "name",
+          "id",
+          "finishedOn",
+          "processedOn",
+          "failedReason",
+          "data",
+        ]),
+      },
     });
   }
 
@@ -101,6 +111,6 @@ export async function createQueue(name: string) {
 
   const queue = createQueueMQ(name);
   queueMap.set(name, queue);
-  setupBullMQProcessor(name);
+  redis.publish(RedisChannel.CreateWorker, JSON.stringify({ queueName: name }));
   return queue;
 }

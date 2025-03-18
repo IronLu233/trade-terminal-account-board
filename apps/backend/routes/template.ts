@@ -8,7 +8,7 @@ import {
   deleteTemplate,
 } from "../repositories/TemplateRepository";
 import { getQueueByName } from "../services/queue";
-import logger from "../utils/logger"; // Import the logger
+import { logger } from "common"; // Import the logger
 
 // Schema definitions
 const templateResponseSchema = z.object({

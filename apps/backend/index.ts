@@ -1,5 +1,4 @@
 import fastify from "fastify";
-import { setupBullMQProcessor } from "./services/processor";
 import {
   type ZodTypeProvider,
   jsonSchemaTransform,
@@ -21,10 +20,6 @@ const run = async () => {
 
   const queues = await setupQueues();
 
-  queues.forEach((q) => {
-    setupBullMQProcessor(q.name);
-  });
-
   const app = fastify().withTypeProvider<ZodTypeProvider>();
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -36,7 +31,6 @@ const run = async () => {
     routePrefix: "/documentation",
     uiConfig: {
       docExpansion: "full",
-      deepLinking: false,
     },
 
     staticCSP: true,
