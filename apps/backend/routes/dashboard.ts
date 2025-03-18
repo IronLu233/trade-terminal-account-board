@@ -7,7 +7,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get("/recentJobs", async (request, reply) => {
     try {
-      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const sevenDayAgo = Date.now() - 24 * 60 * 60 * 1000 * 7;
       let allJobs: Job[] = [];
 
       // Get jobs from all queues
@@ -19,7 +19,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
       // Filter jobs within last 24 hours
       const recentJobs = allJobs.filter((job) => {
         const processedOn = job.processedOn || 0;
-        return processedOn >= oneDayAgo;
+        return processedOn >= sevenDayAgo;
       });
 
       // Sort jobs: active first, then by processedOn time
