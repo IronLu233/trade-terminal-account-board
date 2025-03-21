@@ -9,8 +9,10 @@ declare module "bun" {
   interface Env {
     REDIS_HOST: string;
     REDIS_PORT: string;
-    SCRIPT_PWD: string;
+    REDIS_DB: string;
+
     REDIS_PASS: string;
+    SCRIPT_PWD: string;
     PORT: string;
   }
 }
@@ -19,8 +21,12 @@ export const Env = z
   .object({
     REDIS_HOST: z.string(),
     REDIS_PORT: z.string().transform((it) => parseInt(it)),
-    SCRIPT_PWD: z.string(),
     REDIS_PASS: z.string().optional(),
+    REDIS_DB: z
+      .string()
+      .transform((it) => parseInt(it))
+      .optional(),
+    SCRIPT_PWD: z.string(),
     PORT: z
       .string()
       .default("3000")
