@@ -1,11 +1,7 @@
 import Redis from "ioredis";
 import { redisOptions } from "config";
 
-export const redis = new Redis({
-  host: redisOptions.host,
-  port: redisOptions.port,
-  password: redisOptions.password,
-});
+export const redis = new Redis(redisOptions);
 
 // Helper function to get Redis memory information
 export async function getRedisMemoryInfo(): Promise<Record<

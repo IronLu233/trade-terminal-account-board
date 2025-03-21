@@ -100,11 +100,7 @@ async function main() {
   const workers = config!.accounts.map(setupBullMQWorker);
   workerInstances.push(...workers);
 
-  const redis = new Redis({
-    host: redisOptions.host,
-    port: redisOptions.port,
-    password: redisOptions.password,
-  });
+  const redis = new Redis(redisOptions);
 
   await redis.subscribe(RedisChannel.CreateWorker);
   redis.on("message", (channel, message) => {
