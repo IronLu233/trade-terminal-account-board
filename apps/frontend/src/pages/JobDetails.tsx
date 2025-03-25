@@ -686,7 +686,6 @@ export default function JobDetails() {
               <div>
                 {filteredLogs.length} {filteredLogs.length === 1 ? "entry" : "entries"} {logSearchQuery && "matching filter"}
               </div>
-              {job?.status === "active" && (
                 <div className="flex items-center gap-2">
                   <span className={`text-xs ${autoScroll ? "text-green-500" : "text-muted-foreground"}`}>
                     {autoScroll ? "Auto-scroll enabled" : "Auto-scroll disabled"}
@@ -706,7 +705,6 @@ export default function JobDetails() {
                     Scroll to Bottom
                   </Button>
                 </div>
-              )}
             </div>
           </CardContent>
         </Card>

@@ -73,7 +73,12 @@ export function setupBullMQWorker(queueName: string) {
         return { jobId: `This is the return value of job (${job.id})` };
       });
     },
-    { connection: redisOptions, maxStalledCount: 0, concurrency: 10 }
+    {
+      connection: redisOptions,
+      maxStalledCount: 0,
+      concurrency: 10,
+      stalledInterval: 300_000,
+    }
   );
 
   return worker;
