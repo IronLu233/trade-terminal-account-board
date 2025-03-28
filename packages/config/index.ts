@@ -5,13 +5,23 @@ import { DataFile } from "lowdb/node";
 export * from "./env";
 
 export type Config = {
-  accounts: string[];
+  provider: {
+    accounts: string[];
+  };
+  customer: {
+    hosts: Array<{
+      name: string;
+      host: string;
+    }>;
+  };
 };
 
 export { redisOptions } from "./redis";
 
 export enum RedisChannel {
   CreateWorker = "👷:create-worker",
+  TerminateJob = "🔚:terminate-job",
+  GetSystemInfo = "system-info",
 }
 
 export const configDb = new DataFile<Config>(

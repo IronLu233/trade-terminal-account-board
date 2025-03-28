@@ -1,4 +1,5 @@
 import { useRecentJobs } from "@/hooks/useJobDetail";
+import { getHostAccountInfoFromQueueName } from "common/misc";
 import { Job } from "@/types/queue";
 import {
   Card,
@@ -136,9 +137,14 @@ export default function RecentJobs() {
                       <div className="text-sm text-muted-foreground flex items-center">
                         <span>Template: {job.data?.templateName || "N/A"}</span>
                         {job.queueName && (
-                          <span className="ml-3 px-2 py-0.5 bg-muted rounded-sm text-xs">
-                            {job.queueName}
-                          </span>
+                          <>
+                            <span className="ml-3 px-2 py-0.5 bg-muted rounded-sm text-xs">
+                              Host: {getHostAccountInfoFromQueueName(job.queueName).host}
+                            </span>
+                            <span className="ml-2 px-2 py-0.5 bg-muted rounded-sm text-xs">
+                              Account: {getHostAccountInfoFromQueueName(job.queueName).account}
+                            </span>
+                          </>
                         )}
                       </div>
                     </div>

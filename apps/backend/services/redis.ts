@@ -1,6 +1,7 @@
 import Redis from "ioredis";
 import { redisOptions } from "config";
 
+export const redisChannel = new Redis(redisOptions);
 export const redis = new Redis(redisOptions);
 
 // Helper function to get Redis memory information
@@ -8,7 +9,7 @@ export async function getRedisMemoryInfo(): Promise<Record<
   string,
   any
 > | null> {
-  const info = await redis.info("memory");
+  const info = await redisChannel.info("memory");
 
   // Parse Redis INFO output
   const parsedInfo: Record<string, string> = {};

@@ -36,6 +36,8 @@ export interface JobReturnValue {
 // New interface to match the backend response for a specific queue with its jobs
 export type JobList = {
   name: string;
+  host: string;
+  account: string;
   counts: Counts;
   latestJobUpdatedTime?: number | null;
 
@@ -78,6 +80,8 @@ export interface QueueDetails {
 export type Job = Omit<JobJson, 'data'> & {
   data: JobData;
   queueName?: string;
+  host?: string;
+  account?: string;
 };
 
 export type JobStatus =

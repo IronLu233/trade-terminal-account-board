@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQueueList } from "@/hooks/useQueueList";
 import {
   Card,
@@ -8,22 +8,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ErrorBoundary } from "react-error-boundary";
-import { AlertCircle, RefreshCw, Activity, CheckCircle, XCircle, X, Calendar, FileText, Clock } from "lucide-react";
+import { AlertCircle, RefreshCw, Activity, CheckCircle, XCircle, X, FileText, Clock, Search } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { QueueTemplateSelector } from "@/components/QueueTemplateSelector";
-import { CreateQueueDialog } from "@/components/queues/CreateQueueDialog";
+// import { CreateQueueDialog } from "@/components/queues/CreateQueueDialog";
 import { Badge } from "@/components/ui/badge";
 import { getJobStatus } from "@/lib/utils";
+import { groupBy, debounce } from "lodash-es";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import Fuse from 'fuse.js';
 
 // Helper function to format job timestamp
 function formatJobTime(timestamp: number | undefined): string {
@@ -63,35 +61,53 @@ function ErrorFallback() {
 
 export default function QueueList() {
   const [searchQuery, setSearchQuery] = useState("");
-  // Add a state to store the initial queue order
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [initialQueueOrder, setInitialQueueOrder] = useState<string[]>([]);
+  const [activeHost, setActiveHost] = useState<string>("");
   const isFirstSuccessfulLoad = useRef(true);
 
   const { data, isLoading, isError, refetch, isFetching, error } = useQueueList();
   const queues = data?.queues || [];
 
-  // Transform queue data to match the expected format with latest job info
-  const transformedQueues = queues.map(queue => {
-    // Parse last job data if available
-    const lastJob = queue.lastJob ? {
-      id: queue.lastJob.id,
-      status: getJobStatus(queue.lastJob),
-      createdAt: queue.lastJob.processedOn,
-      templateName: typeof queue.lastJob.data === 'string'
-        ? JSON.parse(queue.lastJob.data).templateName
-        : queue.lastJob.data?.templateName || "Unknown template"
-    } : null;
+  // Memoize transformed queues
+  const transformedQueues = useMemo(() =>
+    queues.map(queue => {
+      const lastJob = queue.lastJob ? {
+        id: queue.lastJob.id,
+        status: getJobStatus(queue.lastJob),
+        createdAt: queue.lastJob.processedOn,
+        templateName: typeof queue.lastJob.data === 'string'
+          ? JSON.parse(queue.lastJob.data).templateName
+          : queue.lastJob.data?.templateName || "Unknown template"
+      } : null;
 
-    return {
-      queueName: queue.name || "",
-      running: queue.counts?.active || 0,
-      successful: queue.counts?.completed || 0,
-      failed: queue.counts?.failed || 0,
-      lastUpdated: queue.latestJobUpdatedTime ? new Date(queue.latestJobUpdatedTime) : null,
-      latestJobUpdatedTime: queue.latestJobUpdatedTime || null,
-      lastJob
-    };
-  });
+      return {
+        queueName: queue.name || "",
+        running: queue.counts?.active || 0,
+        successful: queue.counts?.completed || 0,
+        failed: queue.counts?.failed || 0,
+        lastUpdated: queue.latestJobUpdatedTime ? new Date(queue.latestJobUpdatedTime) : null,
+        latestJobUpdatedTime: queue.latestJobUpdatedTime || null,
+        lastJob,
+        host: queue.host || "unknown",
+        account: queue.account || "unknown"
+      };
+    }), [queues]);
+
+  // Memoize hostGroupedQueues
+  const hostGroupedQueues = useMemo(() =>
+    groupBy(data?.queues, it => it.host),
+    [data?.queues]
+  );
+
+  // Memoize hostAccountGroupedQueues
+  const hostAccountGroupedQueues = useMemo(() =>
+    Object.entries(hostGroupedQueues).reduce((acc, [host, hostQueues]) => {
+      acc[host] = groupBy(hostQueues, queue => queue.account);
+      return acc;
+    }, {} as Record<string, Record<string, typeof queues>>),
+    [hostGroupedQueues]
+  );
 
   // Set up the initial queue order once when data first loads successfully
   useEffect(() => {
@@ -114,42 +130,82 @@ export default function QueueList() {
         .map(queue => queue.queueName);
 
       setInitialQueueOrder(sortedQueueNames);
+
+      // Set the first host as active by default
+      if (Object.keys(hostGroupedQueues).length > 0 && !activeHost) {
+        setActiveHost(Object.keys(hostGroupedQueues)[0]);
+      }
+
       isFirstSuccessfulLoad.current = false;
     }
-  }, [transformedQueues]);
+  }, [transformedQueues, hostGroupedQueues, activeHost]);
 
-  // Filter queues based on search query
-  const filteredQueues = transformedQueues.filter(queue =>
-    queue.queueName.toLowerCase().includes(searchQuery.toLowerCase())
+  // Set up fuzzy search with Fuse.js
+  const fuseOptions = {
+    keys: ['queueName', 'account', 'lastJob.templateName'],
+    threshold: 0.4,
+    includeScore: true
+  };
+
+  // Memoize Fuse instance
+  const fuse = useMemo(() =>
+    new Fuse(transformedQueues, fuseOptions),
+    [transformedQueues]
   );
 
-  // Sort queues based on the initial order rather than re-sorting by running count
-  const sortedQueues = [...filteredQueues].sort((a, b) => {
-    // If both queues are in our initial order, use that order
-    const indexA = initialQueueOrder.indexOf(a.queueName);
-    const indexB = initialQueueOrder.indexOf(b.queueName);
+  // Memoize filtered queues
+  const filteredQueues = useMemo(() =>
+    debouncedSearchQuery
+      ? fuse.search(debouncedSearchQuery).map(result => result.item)
+      : transformedQueues,
+    [debouncedSearchQuery, fuse, transformedQueues]
+  );
 
-    // If both queues were in the initial order, sort by their initial positions
-    if (indexA >= 0 && indexB >= 0) {
-      return indexA - indexB;
-    }
+  // Memoize queue sorting function
+  const sortQueuesByInitialOrder = useMemo(() =>
+    (queues: typeof transformedQueues) => {
+      return [...queues].sort((a, b) => {
+        const indexA = initialQueueOrder.indexOf(a.queueName);
+        const indexB = initialQueueOrder.indexOf(b.queueName);
 
-    // If a queue wasn't in the initial order (i.e., it's new), put it at the end
-    if (indexA < 0) return 1;
-    if (indexB < 0) return -1;
+        if (indexA >= 0 && indexB >= 0) {
+          return indexA - indexB;
+        }
 
-    // Fallback to sorting by running count (should not reach here if initial order is set)
-    return b.running - a.running;
-  });
+        if (indexA < 0) return 1;
+        if (indexB < 0) return -1;
+
+        return b.running - a.running;
+      });
+    },
+    [initialQueueOrder]
+  );
 
   // Handle refresh
   const handleRefresh = () => {
     refetch();
   };
 
-  // Handle queue select
-  const handleQueueSelect = (queueName: string) => {
-    setSearchQuery(queueName);
+  // Debounce the search to reduce lag
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSearch = useCallback(
+    debounce((query: string) => {
+      setDebouncedSearchQuery(query);
+    }, 300),
+    []
+  );
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    debouncedSearch(value);
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
   };
 
   // Handle keyboard shortcut to open command dialog
@@ -168,6 +224,92 @@ export default function QueueList() {
     return <ErrorFallback />;
   }
 
+  // Render queue card for reuse
+  const renderQueueCard = (queue: typeof transformedQueues[0]) => (
+    <Card key={queue.queueName} className="overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center w-full p-4">
+        <div className="flex items-center flex-grow mb-4 md:mb-0">
+          <div className="flex-grow">
+            <Link
+              to={`/queues/jobs/${queue.queueName}`}
+              className="text-lg font-medium hover:underline text-primary"
+            >
+              {queue.account}
+            </Link>
+            {queue.lastUpdated && (
+              <div className="text-xs text-muted-foreground">
+                Last updated: {formatDistanceToNow(queue.lastUpdated)} ago
+              </div>
+            )}
+
+            {/* Latest Job Information Section */}
+            {queue.lastJob && (
+              <div className="mt-2 text-sm border-l-2 border-gray-200 pl-3">
+                <div className="font-medium text-gray-700 mb-1">Latest Job</div>
+                <div className="grid grid-cols-1 gap-1">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-gray-500" />
+                    <span>Created: {formatJobTime(queue.lastJob.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-3 w-3 text-gray-500" />
+                    <span>Template: {queue.lastJob.templateName}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Badge className={getStatusBadgeClass(queue.lastJob.status)}>
+                      {queue.lastJob.status}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      asChild
+                    >
+                      <Link to={`/queues/jobs/${queue.queueName}/${queue.lastJob.id}`}>
+                        View Job
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap justify-between md:justify-end items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Activity className="h-4 w-4 text-blue-500" />
+              <span className="text-sm"><span className="font-medium">{queue.running}</span> running</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span className="text-sm"><span className="font-medium">{queue.successful}</span> completed</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <XCircle className="h-4 w-4 text-red-500" />
+              <span className="text-sm"><span className="font-medium">{queue.failed}</span> failed</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="flex-grow md:w-64">
+              <QueueTemplateSelector queueName={queue.queueName} />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="whitespace-nowrap"
+            >
+              <Link to={`/queues/jobs/${queue.queueName}`}>View Jobs</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="space-y-8 max-w-[1400px] mx-auto">
@@ -178,7 +320,7 @@ export default function QueueList() {
               Monitor and manage message queues across your system
             </p>
           </div>
-          <CreateQueueDialog />
+          {/* <CreateQueueDialog /> */}
         </div>
 
         <Card>
@@ -191,32 +333,28 @@ export default function QueueList() {
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 flex-grow sm:flex-grow-0">
-                <Select onValueChange={handleQueueSelect}>
-                  <SelectTrigger className="w-full sm:w-64">
-                    <SelectValue placeholder="Select a queue..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {transformedQueues.map(queue => (
-                      <SelectItem key={queue.queueName} value={queue.queueName}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{queue.queueName}</span>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Activity className="h-3 w-3 text-blue-500" />
-                            {queue.running} running
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setSearchQuery("")}
-                  title="Clear selection"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <div className="relative w-full sm:w-64">
+                  <Input
+                    placeholder="Search queues..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    className="pr-8"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    {searchQuery ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={clearSearch}
+                        className="h-6 w-6"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    ) : (
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
               </div>
               <Button
                 variant="outline"
@@ -235,104 +373,86 @@ export default function QueueList() {
             {isLoading ? (
               <div className="text-center py-8">Loading queues...</div>
             ) : (
-              <>
-                <div className="space-y-4">
-                  {sortedQueues.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      {searchQuery ? "No queues match your search" : "No queues available"}
+              <div className="space-y-6">
+                {Object.keys(hostGroupedQueues).length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {debouncedSearchQuery ? "No queues match your search" : "No queues available"}
+                  </div>
+                ) : (
+                  <Tabs
+                    defaultValue={activeHost || Object.keys(hostGroupedQueues)[0]}
+                    value={activeHost}
+                    onValueChange={setActiveHost}
+                    className="w-full"
+                  >
+                    <TabsList className="mb-4 overflow-x-auto whitespace-nowrap flex w-full">
+                      {Object.keys(hostGroupedQueues).map(host => (
+                        <TabsTrigger key={host} value={host} className="px-4">
+                          {host}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+
+                    {Object.entries(hostGroupedQueues).map(([host]) => (
+                      <TabsContent key={host} value={host} className="space-y-6">
+                        {Object.entries(hostAccountGroupedQueues[host] || {}).map(([account, accountQueues]) => {
+                          // Use fuzzy search for account queues
+                          const filteredAccountQueues = debouncedSearchQuery
+                            ? accountQueues.filter(q => {
+                                // For each queue, check if it's in the fuzzy filtered results
+                                return filteredQueues.some(fq => fq.queueName === q.name);
+                              })
+                            : accountQueues;
+
+                          if (filteredAccountQueues.length === 0) return null;
+
+                          // Create a version we can sort
+                          const sortableQueues = filteredAccountQueues.map(q => {
+                            const transformedQueue = transformedQueues.find(tq => tq.queueName === q.name);
+                            return transformedQueue || {
+                              queueName: q.name || "",
+                              running: q.counts?.active || 0,
+                              successful: q.counts?.completed || 0,
+                              failed: q.counts?.failed || 0,
+                              host: q.host || "unknown",
+                              account: q.account || "unknown",
+                              lastUpdated: null,
+                              latestJobUpdatedTime: null,
+                              lastJob: null
+                            };
+                          });
+
+                          const sortedAccountQueues = sortQueuesByInitialOrder(sortableQueues);
+
+                          return (
+                            <div key={account} className="space-y-2">
+                              <div className="space-y-4 mb-8">
+                                {sortedAccountQueues.map(queue => renderQueueCard(queue))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                )}
+
+                <div className="mt-4 text-sm text-muted-foreground">
+                  {debouncedSearchQuery && (
+                    <div>
+                      Searching for "{debouncedSearchQuery}" - {filteredQueues.length} results found
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={clearSearch}
+                        className="px-1 h-auto text-sm"
+                      >
+                        Clear search
+                      </Button>
                     </div>
-                  ) : (
-                    sortedQueues.map((queue) => (
-                      <Card key={queue.queueName} className="overflow-hidden">
-                        <div className="flex flex-col md:flex-row md:items-center w-full p-4">
-                          <div className="flex items-center flex-grow mb-4 md:mb-0">
-                            <div className="flex-grow">
-                              <Link
-                                to={`/queues/jobs/${queue.queueName}`}
-                                className="text-lg font-medium hover:underline text-primary"
-                              >
-                                {queue.queueName}
-                              </Link>
-                              {queue.lastUpdated && (
-                                <div className="text-xs text-muted-foreground">
-                                  Last updated: {formatDistanceToNow(queue.lastUpdated)} ago
-                                </div>
-                              )}
-
-                              {/* Latest Job Information Section */}
-                              {queue.lastJob && (
-                                <div className="mt-2 text-sm border-l-2 border-gray-200 pl-3">
-                                  <div className="font-medium text-gray-700 mb-1">Latest Job</div>
-                                  <div className="grid grid-cols-1 gap-1">
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="h-3 w-3 text-gray-500" />
-                                      <span>Created: {formatJobTime(queue.lastJob.createdAt)}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <FileText className="h-3 w-3 text-gray-500" />
-                                      <span>Template: {queue.lastJob.templateName}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Badge className={getStatusBadgeClass(queue.lastJob.status)}>
-                                        {queue.lastJob.status}
-                                      </Badge>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 px-2 text-xs"
-                                        asChild
-                                      >
-                                        <Link to={`/queues/jobs/${queue.queueName}/${queue.lastJob.id}`}>
-                                          View Job
-                                        </Link>
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap justify-between md:justify-end items-center gap-4">
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-1">
-                                <Activity className="h-4 w-4 text-blue-500" />
-                                <span className="text-sm"><span className="font-medium">{queue.running}</span> running</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                                <span className="text-sm"><span className="font-medium">{queue.successful}</span> completed</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <XCircle className="h-4 w-4 text-red-500" />
-                                <span className="text-sm"><span className="font-medium">{queue.failed}</span> failed</span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 w-full md:w-auto">
-                              <div className="flex-grow md:w-64">
-                                <QueueTemplateSelector queueName={queue.queueName} />
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                asChild
-                                className="whitespace-nowrap"
-                              >
-                                <Link to={`/queues/jobs/${queue.queueName}`}>View Jobs</Link>
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))
                   )}
                 </div>
-                <div className="mt-4 text-sm text-muted-foreground">
-                  Showing {sortedQueues.length} of {transformedQueues.length} queues
-                  {searchQuery && ` matching "${searchQuery}"`}
-                </div>
-              </>
+              </div>
             )}
           </CardContent>
         </Card>

@@ -19,7 +19,7 @@ const run = async () => {
   // Initialize database connection
   await initializeDatabase();
 
-  const queues = await setupQueues();
+  await setupQueues();
 
   const app = fastify().withTypeProvider<ZodTypeProvider>();
   app.setValidatorCompiler(validatorCompiler);

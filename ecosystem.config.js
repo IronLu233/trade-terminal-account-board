@@ -1,20 +1,41 @@
 module.exports = {
-  apps: [{
-    name: 'account-board',
-    cwd: 'apps/backend',
-    script: 'npm',
-    args: 'start',
-    watch: false,
-    env: {
-      PORT: 5006
-    }
+  apps: [
+    {
+      name: "account-board",
+      cwd: "apps/backend",
+      script: "npm",
+      args: "start",
+      watch: false,
+      env: {
+        PORT: 5006,
+      },
+    },
+    {
+      name: "account-board-worker",
+      cwd: "apps/worker",
+      script: "npm",
+      args: "start",
+      watch: false,
+    },
+  ],
+  deploy: {
+    app: {
+      user: "ubuntu",
+      host: [],
+      ref: "origin/master",
+      repo: "git@github.com:IronLu233/trade-terminal-account-board.git",
+      path: "/home/ubuntu/bull-dashboard",
+      "post-deploy":
+        "bun install && pm2 startOrRestart ecosystem.config.js --only account-board",
+    },
+    worker: {
+      user: "ubuntu",
+      host: ["3.115.99.150", "3.115.219.178", "52.197.123.66"],
+      ref: "origin/master",
+      repo: "git@github.com:IronLu233/trade-terminal-account-board.git",
+      path: "/home/ubuntu/bull-dashboard",
+      "post-deploy":
+        "bun install && pm2 startOrRestart ecosystem.config.js --only account-board-worker",
+    },
   },
-  {
-    name: 'account-board-worker',
-    cwd: 'apps/worker',
-    script: 'npm',
-    args: 'start',
-    watch: false,
-  }
-],
 };

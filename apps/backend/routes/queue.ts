@@ -11,29 +11,10 @@ import { type JobPayload } from "common";
 
 const queueRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all queues
-  fastify.get(
-    "/",
-    {
-      schema: {
-        response: {
-          200: z.object({
-            list: z.array(
-              z.object({
-                name: z.string(),
-                counts: z.record(z.number()),
-                latestJobUpdatedTime: z.number().nullable().optional(),
-                lastJob: z.record(z.any(), z.any()).optional(),
-              })
-            ),
-          }),
-        },
-      },
-    },
-    async (request, reply) => {
-      const queues = await getQueueListJson();
-      return { list: queues };
-    }
-  );
+  fastify.get("/", async (request, reply) => {
+    const queues = await getQueueListJson();
+    return { list: queues };
+  });
 
   fastify.post<{
     Body: {
@@ -46,18 +27,6 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
         body: z.object({
           queueName: z.string().min(1),
         }),
-        response: {
-          201: z.object({
-            success: z.boolean(),
-            message: z.string(),
-          }),
-          400: z.object({
-            error: z.string(),
-          }),
-          500: z.object({
-            error: z.string(),
-          }),
-        },
       },
     },
     async (request, reply) => {
@@ -87,17 +56,6 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
         params: z.object({
           queueName: z.string(),
         }),
-        response: {
-          200: z.object({
-            name: z.string(),
-            counts: z.record(z.number()),
-            lastUpdatedTime: z.number().nullable().optional(),
-            jobs: z.array(z.any()), // Using any since Job type is complex
-          }),
-          404: z.object({
-            error: z.string(),
-          }),
-        },
       },
     },
     async (request, reply) => {
@@ -126,12 +84,6 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
           queueName: z.string(),
           jobId: z.string(),
         }),
-        response: {
-          200: z.any(),
-          404: z.object({
-            error: z.string(),
-          }),
-        },
       },
     },
     async (request, reply) => {
@@ -174,12 +126,6 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
           queueName: z.string(),
           jobId: z.string(),
         }),
-        response: {
-          200: z.any(),
-          404: z.object({
-            error: z.string(),
-          }),
-        },
       },
     },
     async (request, reply) => {
@@ -210,18 +156,6 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
           queueName: z.string(),
           jobId: z.string(),
         }),
-        response: {
-          200: z.object({
-            success: z.boolean(),
-            message: z.string(),
-          }),
-          404: z.object({
-            error: z.string(),
-          }),
-          500: z.object({
-            error: z.string(),
-          }),
-        },
       },
     },
     async (request, reply) => {

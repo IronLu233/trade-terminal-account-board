@@ -1,8 +1,9 @@
-import { Job, Queue as QueueMQ, type JobJson } from "bullmq";
+import { Job, Queue as QueueMQ } from "bullmq";
 
 import { redisOptions, configDb, RedisChannel } from "config";
-import { redis } from "../services/redis";
+import { redisChannel } from "../services/redis";
 import { pick } from "lodash-es";
+import { getHostAccountInfoFromQueueName, getQueueNameByAccount } from "common";
 
 const queueMap = new Map<string, QueueMQ>();
 
@@ -10,9 +11,17 @@ const createQueueMQ = (name: string) =>
   new QueueMQ(name, { connection: redisOptions });
 
 export async function setupQueues() {
-  const { accounts } = (await configDb.read()) as { accounts: string[] };
-  for (const account of accounts) {
-    queueMap.set(account, createQueueMQ(account));
+  const {
+    provider: { accounts },
+    customer: { hosts },
+  } = (await configDb.read())!;
+
+  const queueNames = accounts.flatMap((account) =>
+    hosts.map((host) => getQueueNameByAccount(account, host.host))
+  );
+
+  for (const name of queueNames) {
+    queueMap.set(name, createQueueMQ(name));
   }
 
   return Array.from(queueMap.values());
@@ -20,6 +29,18 @@ export async function setupQueues() {
 
 export function getQueueByName(queueName: string) {
   return queueMap.get(queueName);
+}
+
+export async function getQueuesByAccount(account: string) {
+  const {
+    customer: { hosts },
+  } = (await configDb.read())!;
+
+  const queueNames = hosts.map((host) =>
+    getQueueNameByAccount(account, host.host)
+  );
+
+  return queueNames.map(getQueueByName);
 }
 
 async function getQueueLatestUpdatedTime(queue: QueueMQ) {
@@ -45,6 +66,11 @@ export async function getQueueWithJobs(queueName: string) {
     lastUpdatedTime: await getQueueLatestUpdatedTime(queue),
     jobs,
   };
+}
+
+export async function getAccountWithJobs(account: string) {
+  const queues = await getQueuesByAccount(account);
+  return Promise.all(queues.map((q) => getQueueWithJobs(q!.name)));
 }
 
 export async function getQueueListJson() {
@@ -73,8 +99,12 @@ export async function getQueueListJson() {
       jobJson.failedReason = "...";
     }
 
+    const { host, account } = getHostAccountInfoFromQueueName(q.name);
+
     result.push({
       name: q.name,
+      host,
+      account,
       counts: await q.getJobCounts(),
       latestJobUpdatedTime: await getQueueLatestUpdatedTime(q),
       lastJob: jobJson && {
@@ -104,13 +134,15 @@ export async function createQueue(name: string) {
     throw new Error(`Queue with name "${name}" already exists`);
   }
 
-  await configDb.write({
-    ...originConfig,
-    accounts: [...originConfig!.accounts, name],
-  });
+  originConfig!.provider.accounts = [...originConfig!.provider.accounts!, name];
+
+  await configDb.write(originConfig!);
 
   const queue = createQueueMQ(name);
   queueMap.set(name, queue);
-  redis.publish(RedisChannel.CreateWorker, JSON.stringify({ queueName: name }));
+  redisChannel.publish(
+    RedisChannel.CreateWorker,
+    JSON.stringify({ queueName: name })
+  );
   return queue;
 }

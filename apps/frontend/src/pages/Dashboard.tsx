@@ -25,7 +25,7 @@ function ErrorFallback() {
 }
 
 export default function Dashboard() {
-  const { data: systemInfo, isLoading, error } = useSystemInfo();
+  const { data: systemInfoList, isLoading, error } = useSystemInfo();
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
@@ -37,85 +37,74 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>System Status</CardTitle>
-            <CardDescription>
-              Current system health and performance metrics
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading || !systemInfo ? (
-              <div>Loading system information...</div>
-            ) : error ? (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>
-                  Failed to load system information
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>CPU Usage</span>
-                    <span>{systemInfo.cpu.usage}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded-full"
-                      style={{ width: `${systemInfo.cpu.usage}%` }}
-                    />
-                  </div>
-                </div>
+        {isLoading || !systemInfoList ? (
+          <div>Loading system information...</div>
+        ) : error ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Failed to load system information
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {systemInfoList.map((systemInfo) => (
+              <Card key={systemInfo.hostname}>
+                <CardHeader>
+                  <CardTitle>{systemInfo.hostname}</CardTitle>
+                  <CardDescription>
+                    System health and performance metrics
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between mb-1 text-sm">
+                        <span>CPU Usage</span>
+                        <span>{systemInfo.cpu.usage}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full"
+                          style={{ width: `${systemInfo.cpu.usage}%` }}
+                        />
+                      </div>
+                    </div>
 
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Memory Usage</span>
-                    <span>{systemInfo.memory.usagePercentage}%</span>
-                  </div>
-                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-yellow-500 rounded-full"
-                      style={{ width: `${systemInfo.memory.usagePercentage}%` }}
-                    />
-                  </div>
-                </div>
+                    <div>
+                      <div className="flex justify-between mb-1 text-sm">
+                        <span>Memory Usage</span>
+                        <span>{systemInfo.memory.usagePercentage}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-yellow-500 rounded-full"
+                          style={{ width: `${systemInfo.memory.usagePercentage}%` }}
+                        />
+                      </div>
+                    </div>
 
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Disk Space</span>
-                    <span>{systemInfo.disk.usagePercentage}%</span>
+                    <div>
+                      <div className="flex justify-between mb-1 text-sm">
+                        <span>Disk Space</span>
+                        <span>{systemInfo.disk.usagePercentage}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-green-500 rounded-full"
+                          style={{ width: `${systemInfo.disk.usagePercentage}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 rounded-full"
-                      style={{ width: `${systemInfo.disk.usagePercentage}%` }}
-                    />
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Redis Memory</span>
-                    <span>
-                      {systemInfo.redis.usedMemoryHuman}/{systemInfo.redis.totalSystemMemoryHuman} ({Math.round((systemInfo.redis.usedMemory / systemInfo.redis.totalSystemMemory) * 100)}%)
-                    </span>
-                  </div>
-                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-purple-500 rounded-full"
-                      style={{ width: `${(systemInfo.redis.usedMemory / systemInfo.redis.totalSystemMemory) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <RecentJobs  />
+        <RecentJobs />
       </div>
     </ErrorBoundary>
   );
