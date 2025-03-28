@@ -22,6 +22,7 @@ module.exports = {
     app: {
       user: "ubuntu",
       host: ['35.74.195.20'],
+      ssh_options: ['-A'],
       ref: "origin/v2",
       repo: "git@github.com:IronLu233/trade-terminal-account-board.git",
       path: "/home/ubuntu/bull-dashboard-app",
@@ -31,6 +32,7 @@ module.exports = {
     worker: {
       user: "ubuntu",
       host: ["3.115.99.150", "3.115.219.178", "52.197.123.66"],
+      ssh_options: ['-A'],
       ref: "origin/v2",
       repo: "git@github.com:IronLu233/trade-terminal-account-board.git",
       path: "/home/ubuntu/bull-dashboard-worker",
