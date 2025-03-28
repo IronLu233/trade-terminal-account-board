@@ -160,20 +160,5 @@ provider:
     - TestNewAccount
 
 customer:
-  hosts:
+  workers:
     - name: bull-dashboard
-      host: bull-dashboard
-
-# queue和worker的名字改成`hostname` + `account`
-# 前端展示的是queue，添加任务时可以选择到哪个host上
-# worker启动时，各个名字是`hostname:account``
-# 终结job时，需要通过redis而非直接在本机进行terminal
-# 机器的systeminfo需要同步到redis中，让provider可以取到
-# queue的添加和删除也需要考虑
-# hosts:
-#   - name: arb06
-#     host: ip-172-31-39-199
-#   - name: arb07
-#     host: ip-172-31-2-210
-#   - name: arb08
-#     host: ip-172-31-2-211

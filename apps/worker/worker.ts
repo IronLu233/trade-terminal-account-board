@@ -7,15 +7,14 @@ import {
 import { Worker } from "bullmq";
 import { Env, redisOptions } from "config";
 import { spawn } from "child_process";
-import { jobCancelerMap, workers } from "./appState";
-import { hostname } from "os";
+import { jobCancelerMap, WORKER_NAME, workers } from "./appState";
 export function setupBullMQWorker(account: string) {
   logger.info(
-    `Setting up BullMQ worker for queue: ${account} in ${process.env.HOST_NAME || hostname()}`
+    `Setting up BullMQ worker for queue: ${account} in ${WORKER_NAME}`
   );
 
   const worker = new Worker<JobPayload, { completedAt: Date }>(
-    getQueueNameByAccount(account, process.env.HOST_NAME || hostname()),
+    getQueueNameByAccount(account, process.env.HOST_NAME),
     async (job) => {
       logger.info(`Starting job ${job.id} from queue ${account}`, {
         jobId: job.id,

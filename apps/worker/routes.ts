@@ -1,11 +1,10 @@
 import { RedisChannel } from "config";
 import { z } from "zod";
-import { jobCancelerMap, workers } from "./appState";
+import { jobCancelerMap, WORKER_NAME, workers } from "./appState";
 import { setupBullMQWorker } from "./worker";
 import { getCurrentWorkerJobKey, getSystemInfoRedisKey } from "common";
 import si from "systeminformation";
 import { redis } from "./redis";
-import { hostname } from "os";
 
 export function handleRedisRoute(channel: string, message: string) {
   switch (channel) {
@@ -46,7 +45,7 @@ export async function handleUpdateSystemInfo() {
 
   // Get root filesystem or first available
   const rootFs = fsData.find((fs) => fs.mount === "/") || fsData[0];
-  const hostname2 = process.env.HOST_NAME || hostname();
+  const hostname2 = WORKER_NAME;
   const result = {
     hostname: hostname2,
     cpu: {

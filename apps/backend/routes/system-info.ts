@@ -31,10 +31,10 @@ const systemInfoRoutes: FastifyPluginAsync = async (fastify) => {
 
     async () => {
       const {
-        customer: { hosts },
+        customer: { workers: hosts },
       } = (await configDb.read()) as Config;
 
-      const machineHosts = hosts.map((it) => it.host);
+      const machineHosts = hosts.map((it) => it.name);
 
       const infoStrings = await Promise.all(
         machineHosts.map((host) => redis.get(getSystemInfoRedisKey(host)))

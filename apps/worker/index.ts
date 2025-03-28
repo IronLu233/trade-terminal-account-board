@@ -1,7 +1,5 @@
-import { configDb, redisOptions, RedisChannel } from "config";
-import Redis from "ioredis";
-import { hostname } from "os";
-import { workers } from "./appState";
+import { configDb, RedisChannel, Env } from "config";
+import { WORKER_NAME, workers } from "./appState";
 import { closeAllWorkers, setupBullMQWorker } from "./worker";
 import { handleRedisRoute, handleUpdateSystemInfo } from "./routes";
 import { redisChannel } from "./redis";
@@ -20,7 +18,9 @@ async function main() {
 
   workers.push(...accounts.map(setupBullMQWorker));
 
-  await redisChannel.subscribe(`${RedisChannel.CreateWorker} in ${hostname}`);
+  await redisChannel.subscribe(
+    `${RedisChannel.CreateWorker} in ${WORKER_NAME}`
+  );
 
   redisChannel.on("message", handleRedisRoute);
 

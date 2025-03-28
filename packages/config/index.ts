@@ -9,9 +9,8 @@ export type Config = {
     accounts: string[];
   };
   customer: {
-    hosts: Array<{
+    workers: Array<{
       name: string;
-      host: string;
     }>;
   };
 };

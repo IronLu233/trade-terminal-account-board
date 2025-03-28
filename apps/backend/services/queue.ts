@@ -13,11 +13,11 @@ const createQueueMQ = (name: string) =>
 export async function setupQueues() {
   const {
     provider: { accounts },
-    customer: { hosts },
+    customer: { workers },
   } = (await configDb.read())!;
 
   const queueNames = accounts.flatMap((account) =>
-    hosts.map((host) => getQueueNameByAccount(account, host.host))
+    workers.map((host) => getQueueNameByAccount(account, host.name))
   );
 
   for (const name of queueNames) {
@@ -33,11 +33,11 @@ export function getQueueByName(queueName: string) {
 
 export async function getQueuesByAccount(account: string) {
   const {
-    customer: { hosts },
+    customer: { workers },
   } = (await configDb.read())!;
 
-  const queueNames = hosts.map((host) =>
-    getQueueNameByAccount(account, host.host)
+  const queueNames = workers.map((host) =>
+    getQueueNameByAccount(account, host.name)
   );
 
   return queueNames.map(getQueueByName);

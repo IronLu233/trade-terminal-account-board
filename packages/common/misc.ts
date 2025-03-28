@@ -1,11 +1,14 @@
-import { hostname } from "os";
+import { z } from "zod";
 
 export function getCurrentWorkerJobKey(account: string, jobId: string) {
   return `${account}:${jobId}`;
 }
 
-export function getQueueNameByAccount(account: string, host = hostname()) {
-  return `${host}💻${account}`;
+export function getQueueNameByAccount(
+  account: string,
+  workerName = z.string().parse(process.env.WORKER_NAME)
+) {
+  return `${workerName}💻${account}`;
 }
 
 export function getHostAccountInfoFromQueueName(name: string) {
@@ -17,7 +20,7 @@ export function getHostAccountInfoFromQueueName(name: string) {
 }
 
 export function getSystemInfoRedisKey(
-  host = process.env.HOSTNAME || hostname()
+  host = z.string().parse(process.env.WORKER_NAME)
 ) {
   return `systemInfo💻${host}`;
 }
