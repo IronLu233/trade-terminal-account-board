@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "account-board",
+      name: "account-board-v2",
       cwd: "apps/backend",
       script: "npm",
       args: "start",
