@@ -26,7 +26,7 @@ module.exports = {
       repo: "git@github.com:IronLu233/trade-terminal-account-board.git",
       path: "/home/ubuntu/bull-dashboard-app",
       "post-deploy":
-        "bun install && bun run build && pm2 startOrRestart ecosystem.config.js --only account-board",
+        "/home/ubuntu/.bun/bin/bun install && /home/ubuntu/.bun/bin/bun run build && pm2 startOrRestart ecosystem.config.js --only account-board",
     },
     worker: {
       user: "ubuntu",
