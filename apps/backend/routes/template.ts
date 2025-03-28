@@ -231,10 +231,10 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
         },
         {
           removeOnComplete: {
-            age: 3600 * 24 * 7,
+            age: 3600 * 24 * 1,
           },
           removeOnFail: {
-            age: 3600 * 24 * 7,
+            age: 3600 * 24 * 1,
           },
         }
       );
