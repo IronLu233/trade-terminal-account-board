@@ -21,7 +21,7 @@ module.exports = {
   deploy: {
     app: {
       user: "ubuntu",
-      host: [],
+      host: ['35.74.195.20'],
       ref: "origin/v2",
       repo: "git@github.com:IronLu233/trade-terminal-account-board.git",
       path: "/home/ubuntu/bull-dashboard-app",
