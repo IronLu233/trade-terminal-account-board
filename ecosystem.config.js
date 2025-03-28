@@ -11,7 +11,7 @@ module.exports = {
       },
     },
     {
-      name: "account-board-worker",
+      name: "account-board-worker-v2",
       cwd: "apps/worker",
       script: "npm",
       args: "start",
