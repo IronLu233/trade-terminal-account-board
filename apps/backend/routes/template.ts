@@ -230,6 +230,7 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
           templateName: template.name,
         },
         {
+          keepLogs: 10000,
           removeOnComplete: {
             age: 3600 * 24 * 1,
           },

@@ -191,7 +191,7 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
         return { error: `Queue with name "${queueName}" not found` };
       }
 
-      const { logs } = await queue.getJobLogs(jobId, 0, 100);
+      const { logs } = await queue.getJobLogs(jobId, 0, 100, false);
       return logs;
     }
   );
