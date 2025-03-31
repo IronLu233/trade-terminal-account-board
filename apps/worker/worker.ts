@@ -1,5 +1,6 @@
 import {
   getCurrentWorkerJobKey,
+  getHostAccountInfoFromQueueName,
   getQueueNameByAccount,
   logger,
   type JobPayload,
@@ -30,7 +31,7 @@ export function setupBullMQWorker(account: string) {
           "-u",
           script,
           "--account",
-          job.queueName,
+          getHostAccountInfoFromQueueName(job.queueName).account,
         ];
         if (args) {
           // Properly split arguments by any whitespace and filter out empty strings
@@ -47,27 +48,13 @@ export function setupBullMQWorker(account: string) {
         const child = spawn("pipenv", argv, {
           cwd: executionPath || Env.SCRIPT_PWD,
           stdio: ["pipe", "pipe", "pipe"],
-          // onExit(subprocess, exitCode, signalCode, error) {
-          //   const key = getCurrentWorkerJobKey(account, job.id!);
-          //   jobCancelerMap.delete(key);
-          //   if (exitCode === 0) {
-          //     logger.info(`Job ${job.id} completed successfully`);
-          //     resolve({ completedAt: new Date() });
-          //   } else {
-          //     logger.error(
-          //       `Job ${job.id} failed with code ${exitCode} ${signalCode}`
-          //     );
-          //     reject(error);
-          //   }
-          // },
         });
-
-        const textDecoder = new TextDecoder();
 
         let stderr = "";
         child.stderr.on("data", (data: Buffer) => {
           stderr = `${data.toString()}`;
           logger.warn(`Job ${job.id} stderr:`, { stderr: data.toString() });
+          job.clearLogs(5000);
           job.log(`${new Date().toISOString()}[WARN]${data.toString()}`);
         });
 
