@@ -7,7 +7,9 @@ import {
 } from "../services/queue";
 import { z } from "zod";
 import type { Job } from "bullmq";
-import { type JobPayload } from "common";
+import { getHostAccountInfoFromQueueName, type JobPayload } from "common";
+import { redisChannel } from "../services/redis";
+import { RedisChannel } from "config";
 
 const queueRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all queues
@@ -138,7 +140,7 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const { logs } = await queue.getJobLogs(jobId, 0, 100, false);
-      return logs;
+      return logs.reverse();
     }
   );
 
@@ -183,8 +185,16 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.code(404).send({ error: "No PID found for this job" });
         }
 
-        // Send SIGINT signal (Ctrl+C) to the process
-        process.kill(pid, "SIGINT");
+        // Also publish a message to Redis channel for worker-side termination
+        const account = getHostAccountInfoFromQueueName(queueName).account;
+
+        await redisChannel.publish(
+          RedisChannel.TerminateJob,
+          JSON.stringify({
+            jobId,
+            account,
+          })
+        );
 
         return reply.send({
           success: true,

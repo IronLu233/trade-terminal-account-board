@@ -7,6 +7,7 @@ import si from "systeminformation";
 import { redis } from "./redis";
 
 export function handleRedisRoute(channel: string, message: string) {
+  console.log(channel);
   switch (channel) {
     case RedisChannel.CreateWorker:
       return handleCreateWorker(message);
@@ -31,9 +32,10 @@ const TerminateJobSchema = z.object({
 function handleTerminateJob(message: string): void {
   const { jobId, account } = TerminateJobSchema.parse(JSON.parse(message));
   const key = getCurrentWorkerJobKey(account, jobId);
-  jobCancelerMap.delete(key);
+  console.log(key);
   const aborter = jobCancelerMap.get(key);
   aborter?.();
+  jobCancelerMap.delete(key);
 }
 
 export async function handleUpdateSystemInfo() {

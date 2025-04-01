@@ -19,7 +19,8 @@ async function main() {
   workers.push(...accounts.map(setupBullMQWorker));
 
   await redisChannel.subscribe(
-    `${RedisChannel.CreateWorker} in ${WORKER_NAME}`
+    RedisChannel.CreateWorker,
+    RedisChannel.TerminateJob
   );
 
   redisChannel.on("message", handleRedisRoute);

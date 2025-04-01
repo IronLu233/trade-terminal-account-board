@@ -75,7 +75,7 @@ export function setupBullMQWorker(account: string) {
           getCurrentWorkerJobKey(account, job.id!),
           async () => {
             if (child.exitCode === null) {
-              child.kill();
+              child.kill("SIGINT");
             }
           }
         );
