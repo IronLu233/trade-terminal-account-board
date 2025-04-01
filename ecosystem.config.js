@@ -35,7 +35,7 @@ module.exports = {
       repo: "git@github.com:IronLu233/trade-terminal-account-board.git",
       path: "/home/ubuntu/bull-dashboard-worker",
       "post-deploy":
-        "bun install && pm2 startOrRestart ecosystem.config.js --only account-board-worker-v2",
+        "source ~/.zshrc && bun install && pm2 startOrRestart ecosystem.config.js --only account-board-worker-v2",
     },
   },
 };
