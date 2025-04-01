@@ -192,7 +192,7 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const { logs } = await queue.getJobLogs(jobId, 0, 100, false);
-      return logs;
+      return logs.reverse();
     }
   );
 
