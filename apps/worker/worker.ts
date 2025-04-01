@@ -54,7 +54,6 @@ export function setupBullMQWorker(account: string) {
         child.stderr.on("data", (data: Buffer) => {
           stderr = `${data.toString()}`;
           logger.warn(`Job ${job.id} stderr:`, { stderr: data.toString() });
-          job.clearLogs(5000);
           job.log(`${new Date().toISOString()}[WARN]${data.toString()}`);
         });
 
