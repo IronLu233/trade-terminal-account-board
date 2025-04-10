@@ -13,10 +13,25 @@ import { RedisChannel } from "config";
 
 const queueRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all queues
-  fastify.get("/", async (request, reply) => {
-    const queues = await getQueueListJson();
-    return { list: queues };
-  });
+  fastify.get<{
+    Querystring: {
+      hostname: string;
+    };
+  }>(
+    "/",
+    {
+      schema: {
+        querystring: z.object({
+          hostname: z.string(),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const { hostname } = request.query;
+      const queues = await getQueueListJson(hostname);
+      return { list: queues };
+    }
+  );
 
   fastify.post<{
     Body: {

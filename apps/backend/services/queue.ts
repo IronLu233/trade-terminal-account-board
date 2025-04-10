@@ -73,8 +73,11 @@ export async function getAccountWithJobs(account: string) {
   return Promise.all(queues.map((q) => getQueueWithJobs(q!.name)));
 }
 
-export async function getQueueListJson() {
-  const queues = Array.from(queueMap.values());
+export async function getQueueListJson(hostName: string) {
+  const queues = Array.from(queueMap.values()).filter(queue => {
+    const { host } = getHostAccountInfoFromQueueName(queue.name);
+    return host === hostName;
+  });
   const result = [];
 
   for (const q of queues) {
@@ -120,7 +123,39 @@ export async function getQueueListJson() {
     });
   }
 
-  return result;
+  return result.sort((a, b) => {
+    // 如果两个队列都没有 lastJob，保持原顺序
+    if (!a.lastJob && !b.lastJob) return 0;
+    // 如果 a 没有 lastJob，排在后面
+    if (!a.lastJob) return 1;
+    // 如果 b 没有 lastJob，排在后面
+    if (!b.lastJob) return -1;
+
+    // 获取任务状态
+    const getJobStatus = (job: any) => {
+      if (job.finishedOn) return 'completed';
+      if (job.failedReason) return 'failed';
+      return 'active';
+    };
+
+    const statusA = getJobStatus(a.lastJob);
+    const statusB = getJobStatus(b.lastJob);
+
+    // 定义状态优先级
+    const statusPriority = {
+      active: 3,
+      completed: 2,
+      failed: 1
+    };
+
+    // 如果状态不同，按状态优先级排序
+    if (statusPriority[statusA] !== statusPriority[statusB]) {
+      return statusPriority[statusB] - statusPriority[statusA];
+    }
+
+    // 如果状态相同，按 processedOn 时间从晚到早排序
+    return (b.lastJob.processedOn || 0) - (a.lastJob.processedOn || 0);
+  });
 }
 
 export function getQueueList() {

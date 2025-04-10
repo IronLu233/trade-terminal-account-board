@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQueueList } from "@/hooks/useQueueList";
+import { useServerConfig } from "@/hooks/useServerConfig";
 import {
   Card,
   CardContent,
@@ -18,7 +19,7 @@ import { QueueTemplateSelector } from "@/components/QueueTemplateSelector";
 // import { CreateQueueDialog } from "@/components/queues/CreateQueueDialog";
 import { Badge } from "@/components/ui/badge";
 import { getJobStatus } from "@/lib/utils";
-import { groupBy, debounce } from "lodash-es";
+import { debounce } from "lodash-es";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import Fuse from 'fuse.js';
@@ -62,12 +63,24 @@ function ErrorFallback() {
 export default function QueueList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [initialQueueOrder, setInitialQueueOrder] = useState<string[]>([]);
-  const [activeHost, setActiveHost] = useState<string>("");
-  const isFirstSuccessfulLoad = useRef(true);
+  const [activeWorker, setActiveWorker] = useState<string>("");
 
-  const { data, isLoading, isError, refetch, isFetching, error } = useQueueList();
+  const { data: configData, isLoading: isConfigLoading, isError: isConfigError } = useServerConfig();
+  const workers = configData?.customer?.workers || [];
+  const firstWorker = workers[0]?.name;
+
+  const { data, isLoading, refetch, isFetching } = useQueueList({
+    hostname: activeWorker
+  });
+
   const queues = data?.queues || [];
+
+  // Set active worker when config loads
+  useEffect(() => {
+    if (firstWorker && !activeWorker) {
+      setActiveWorker(firstWorker);
+    }
+  }, [firstWorker, activeWorker]);
 
   // Memoize transformed queues
   const transformedQueues = useMemo(() =>
@@ -94,52 +107,6 @@ export default function QueueList() {
       };
     }), [queues]);
 
-  // Memoize hostGroupedQueues
-  const hostGroupedQueues = useMemo(() =>
-    groupBy(data?.queues, it => it.host),
-    [data?.queues]
-  );
-
-  // Memoize hostAccountGroupedQueues
-  const hostAccountGroupedQueues = useMemo(() =>
-    Object.entries(hostGroupedQueues).reduce((acc, [host, hostQueues]) => {
-      acc[host] = groupBy(hostQueues, queue => queue.account);
-      return acc;
-    }, {} as Record<string, Record<string, typeof queues>>),
-    [hostGroupedQueues]
-  );
-
-  // Set up the initial queue order once when data first loads successfully
-  useEffect(() => {
-    if (transformedQueues.length > 0 && isFirstSuccessfulLoad.current) {
-      // Sort by latestJobUpdatedTime (newest first), then by name if no timestamp
-      const sortedQueueNames = [...transformedQueues]
-        .sort((a, b) => {
-          // If both have latestJobUpdatedTime, sort by that (newest first)
-          if (a.latestJobUpdatedTime && b.latestJobUpdatedTime) {
-            return b.latestJobUpdatedTime - a.latestJobUpdatedTime;
-          }
-
-          // If only one has latestJobUpdatedTime, that one comes first
-          if (a.latestJobUpdatedTime) return -1;
-          if (b.latestJobUpdatedTime) return 1;
-
-          // If neither has latestJobUpdatedTime, sort by name alphabetically
-          return a.queueName.localeCompare(b.queueName);
-        })
-        .map(queue => queue.queueName);
-
-      setInitialQueueOrder(sortedQueueNames);
-
-      // Set the first host as active by default
-      if (Object.keys(hostGroupedQueues).length > 0 && !activeHost) {
-        setActiveHost(Object.keys(hostGroupedQueues)[0]);
-      }
-
-      isFirstSuccessfulLoad.current = false;
-    }
-  }, [transformedQueues, hostGroupedQueues, activeHost]);
-
   // Set up fuzzy search with Fuse.js
   const fuseOptions = {
     keys: ['queueName', 'account', 'lastJob.templateName'],
@@ -159,26 +126,6 @@ export default function QueueList() {
       ? fuse.search(debouncedSearchQuery).map(result => result.item)
       : transformedQueues,
     [debouncedSearchQuery, fuse, transformedQueues]
-  );
-
-  // Memoize queue sorting function
-  const sortQueuesByInitialOrder = useMemo(() =>
-    (queues: typeof transformedQueues) => {
-      return [...queues].sort((a, b) => {
-        const indexA = initialQueueOrder.indexOf(a.queueName);
-        const indexB = initialQueueOrder.indexOf(b.queueName);
-
-        if (indexA >= 0 && indexB >= 0) {
-          return indexA - indexB;
-        }
-
-        if (indexA < 0) return 1;
-        if (indexB < 0) return -1;
-
-        return b.running - a.running;
-      });
-    },
-    [initialQueueOrder]
   );
 
   // Handle refresh
@@ -220,8 +167,12 @@ export default function QueueList() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  if (isError) {
+  if (isConfigError) {
     return <ErrorFallback />;
+  }
+
+  if (isConfigLoading) {
+    return <div className="text-center py-8">Loading configuration...</div>;
   }
 
   // Render queue card for reuse
@@ -374,66 +325,30 @@ export default function QueueList() {
               <div className="text-center py-8">Loading queues...</div>
             ) : (
               <div className="space-y-6">
-                {Object.keys(hostGroupedQueues).length === 0 ? (
+                {workers.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    {debouncedSearchQuery ? "No queues match your search" : "No queues available"}
+                    No workers available
                   </div>
                 ) : (
                   <Tabs
-                    defaultValue={activeHost || Object.keys(hostGroupedQueues)[0]}
-                    value={activeHost}
-                    onValueChange={setActiveHost}
+                    defaultValue={activeWorker}
+                    value={activeWorker}
+                    onValueChange={setActiveWorker}
                     className="w-full"
                   >
                     <TabsList className="mb-4 overflow-x-auto whitespace-nowrap flex w-full">
-                      {Object.keys(hostGroupedQueues).map(host => (
-                        <TabsTrigger key={host} value={host} className="px-4">
-                          {host}
+                      {workers.map(worker => (
+                        <TabsTrigger key={worker.name} value={worker.name} className="px-4">
+                          {worker.name}
                         </TabsTrigger>
                       ))}
                     </TabsList>
 
-                    {Object.entries(hostGroupedQueues).map(([host]) => (
-                      <TabsContent key={host} value={host} className="space-y-6">
-                        {Object.entries(hostAccountGroupedQueues[host] || {}).map(([account, accountQueues]) => {
-                          // Use fuzzy search for account queues
-                          const filteredAccountQueues = debouncedSearchQuery
-                            ? accountQueues.filter(q => {
-                                // For each queue, check if it's in the fuzzy filtered results
-                                return filteredQueues.some(fq => fq.queueName === q.name);
-                              })
-                            : accountQueues;
-
-                          if (filteredAccountQueues.length === 0) return null;
-
-                          // Create a version we can sort
-                          const sortableQueues = filteredAccountQueues.map(q => {
-                            const transformedQueue = transformedQueues.find(tq => tq.queueName === q.name);
-                            return transformedQueue || {
-                              queueName: q.name || "",
-                              running: q.counts?.active || 0,
-                              successful: q.counts?.completed || 0,
-                              failed: q.counts?.failed || 0,
-                              host: q.host || "unknown",
-                              account: q.account || "unknown",
-                              lastUpdated: null,
-                              latestJobUpdatedTime: null,
-                              lastJob: null
-                            };
-                          });
-
-                          const sortedAccountQueues = sortQueuesByInitialOrder(sortableQueues);
-
-                          return (
-                            <div key={account} className="space-y-2">
-                              <div className="space-y-4 mb-8">
-                                {sortedAccountQueues.map(queue => renderQueueCard(queue))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </TabsContent>
-                    ))}
+                    <TabsContent value={activeWorker} className="space-y-6">
+                      <div className="space-y-4">
+                        {filteredQueues.map(queue => renderQueueCard(queue))}
+                      </div>
+                    </TabsContent>
                   </Tabs>
                 )}
 

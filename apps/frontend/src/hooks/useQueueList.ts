@@ -13,9 +13,13 @@ interface FetchQueuesResponse {
   queues: JobList;
 }
 
-const fetchQueues = async (): Promise<FetchQueuesResponse> => {
-  // Updated API endpoint to use the new v2 API
-  const response = await fetch(`/api/v2/queue`, {
+interface UseQueueListOptions {
+  hostname: string;
+}
+
+const fetchQueues = async (hostname: string): Promise<FetchQueuesResponse> => {
+  const url = `/api/v2/queue?hostname=${hostname}`;
+  const response = await fetch(url, {
     headers: {
       accept: 'application/json, text/plain, */*',
       'cache-control': 'no-cache',
@@ -30,11 +34,6 @@ const fetchQueues = async (): Promise<FetchQueuesResponse> => {
 
   const data: { list: JobList } = await response.json();
 
-  // Sort queues by name alphabetically (case-insensitive)
-  data.list.sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
-  );
-
   return {
     queues: data.list.map((it) => ({
       ...it,
@@ -43,10 +42,10 @@ const fetchQueues = async (): Promise<FetchQueuesResponse> => {
   };
 };
 
-export const useQueueList = () => {
+export const useQueueList = ({ hostname }: UseQueueListOptions) => {
   return useQuery({
-    queryKey: ['queues'],
-    queryFn: fetchQueues,
+    queryKey: ['queues', hostname],
+    queryFn: () => fetchQueues(hostname),
     staleTime: 5000,
     refetchInterval: 10000,
   });
