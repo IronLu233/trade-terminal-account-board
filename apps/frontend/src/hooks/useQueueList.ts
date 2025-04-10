@@ -15,6 +15,7 @@ interface FetchQueuesResponse {
 
 interface UseQueueListOptions {
   hostname: string;
+  enabled?: boolean;
 }
 
 const fetchQueues = async (hostname: string): Promise<FetchQueuesResponse> => {
@@ -42,12 +43,13 @@ const fetchQueues = async (hostname: string): Promise<FetchQueuesResponse> => {
   };
 };
 
-export const useQueueList = ({ hostname }: UseQueueListOptions) => {
+export const useQueueList = ({ hostname, enabled }: UseQueueListOptions) => {
   return useQuery({
     queryKey: ['queues', hostname],
     queryFn: () => fetchQueues(hostname),
     staleTime: 5000,
     refetchInterval: 10000,
+    enabled: enabled,
   });
 };
 

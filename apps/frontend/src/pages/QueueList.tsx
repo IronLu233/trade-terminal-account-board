@@ -70,7 +70,8 @@ export default function QueueList() {
   const firstWorker = workers[0]?.name;
 
   const { data, isLoading, refetch, isFetching } = useQueueList({
-    hostname: activeWorker
+    hostname: activeWorker,
+    enabled: !!activeWorker // 只在有 activeWorker 时加载队列数据
   });
 
   const queues = data?.queues || [];
@@ -321,54 +322,52 @@ export default function QueueList() {
             </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8">Loading queues...</div>
+            {workers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No workers available
+              </div>
             ) : (
-              <div className="space-y-6">
-                {workers.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No workers available
-                  </div>
-                ) : (
-                  <Tabs
-                    defaultValue={activeWorker}
-                    value={activeWorker}
-                    onValueChange={setActiveWorker}
-                    className="w-full"
-                  >
-                    <TabsList className="mb-4 overflow-x-auto whitespace-nowrap flex w-full">
-                      {workers.map(worker => (
-                        <TabsTrigger key={worker.name} value={worker.name} className="px-4">
-                          {worker.name}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
+              <Tabs
+                defaultValue={activeWorker}
+                value={activeWorker}
+                onValueChange={setActiveWorker}
+                className="w-full"
+              >
+                <TabsList className="mb-4 overflow-x-auto whitespace-nowrap flex w-full">
+                  {workers.map(worker => (
+                    <TabsTrigger key={worker.name} value={worker.name} className="px-4">
+                      {worker.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-                    <TabsContent value={activeWorker} className="space-y-6">
-                      <div className="space-y-4">
-                        {filteredQueues.map(queue => renderQueueCard(queue))}
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                )}
-
-                <div className="mt-4 text-sm text-muted-foreground">
-                  {debouncedSearchQuery && (
-                    <div>
-                      Searching for "{debouncedSearchQuery}" - {filteredQueues.length} results found
-                      <Button
-                        variant="link"
-                        size="sm"
-                        onClick={clearSearch}
-                        className="px-1 h-auto text-sm"
-                      >
-                        Clear search
-                      </Button>
+                <TabsContent value={activeWorker} className="space-y-6">
+                  {isLoading ? (
+                    <div className="text-center py-8">Loading queues...</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredQueues.map(queue => renderQueueCard(queue))}
                     </div>
                   )}
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
             )}
+
+            <div className="mt-4 text-sm text-muted-foreground">
+              {debouncedSearchQuery && (
+                <div>
+                  Searching for "{debouncedSearchQuery}" - {filteredQueues.length} results found
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={clearSearch}
+                    className="px-1 h-auto text-sm"
+                  >
+                    Clear search
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
