@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQueueList } from "@/hooks/useQueueList";
 import { useServerConfig } from "@/hooks/useServerConfig";
+import { JobJson } from "bullmq";
 import {
   Card,
   CardContent,
@@ -23,6 +24,36 @@ import { debounce } from "lodash-es";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import Fuse from 'fuse.js';
+
+interface Queue {
+  name: string;
+  counts?: {
+    active: number;
+    completed: number;
+    failed: number;
+  };
+  lastJob?: JobJson;
+  latestJobUpdatedTime?: number;
+  host?: string;
+  account?: string;
+}
+
+interface TransformedQueue {
+  queueName: string;
+  running: number;
+  successful: number;
+  failed: number;
+  lastUpdated: Date | null;
+  latestJobUpdatedTime: number | null;
+  lastJob: {
+    id: string;
+    status: string;
+    createdAt: number;
+    templateName: string;
+  } | null;
+  host: string;
+  account: string;
+}
 
 // Helper function to format job timestamp
 function formatJobTime(timestamp: number | undefined): string {
@@ -64,6 +95,7 @@ export default function QueueList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [activeWorker, setActiveWorker] = useState<string>("");
+  const [initialQueueOrder, setInitialQueueOrder] = useState<string[]>([]);
 
   const { data: configData, isLoading: isConfigLoading, isError: isConfigError } = useServerConfig();
   const workers = configData?.customer?.workers || [];
@@ -71,10 +103,17 @@ export default function QueueList() {
 
   const { data, isLoading, refetch, isFetching } = useQueueList({
     hostname: activeWorker,
-    enabled: !!activeWorker // 只在有 activeWorker 时加载队列数据
+    enabled: !!activeWorker
   });
 
-  const queues = data?.queues || [];
+  const queues = (data?.queues || []) as Queue[];
+
+  // 设置初始队列顺序
+  useEffect(() => {
+    if (queues.length > 0 && initialQueueOrder.length === 0) {
+      setInitialQueueOrder(queues.map(queue => queue.name));
+    }
+  }, [queues, initialQueueOrder.length]);
 
   // Set active worker when config loads
   useEffect(() => {
@@ -84,18 +123,22 @@ export default function QueueList() {
   }, [firstWorker, activeWorker]);
 
   // Memoize transformed queues
-  const transformedQueues = useMemo(() =>
-    queues.map(queue => {
+  const transformedQueues = useMemo(() => {
+    const queueMap = new Map<string, TransformedQueue>();
+
+    queues.forEach(queue => {
       const lastJob = queue.lastJob ? {
         id: queue.lastJob.id,
         status: getJobStatus(queue.lastJob),
-        createdAt: queue.lastJob.processedOn,
-        templateName: typeof queue.lastJob.data === 'string'
-          ? JSON.parse(queue.lastJob.data).templateName
-          : queue.lastJob.data?.templateName || "Unknown template"
+        createdAt: queue.lastJob.processedOn || 0,
+        templateName: typeof queue.lastJob.data === 'object' && queue.lastJob.data !== null
+          ? (queue.lastJob.data as { templateName?: string }).templateName || "Unknown template"
+          : typeof queue.lastJob.data === 'string'
+            ? JSON.parse(queue.lastJob.data).templateName || "Unknown template"
+            : "Unknown template"
       } : null;
 
-      return {
+      queueMap.set(queue.name, {
         queueName: queue.name || "",
         running: queue.counts?.active || 0,
         successful: queue.counts?.completed || 0,
@@ -105,8 +148,19 @@ export default function QueueList() {
         lastJob,
         host: queue.host || "unknown",
         account: queue.account || "unknown"
-      };
-    }), [queues]);
+      });
+    });
+
+    // 按照初始顺序返回队列数据
+    if (initialQueueOrder.length > 0) {
+      return initialQueueOrder
+        .map(queueName => queueMap.get(queueName))
+        .filter((queue): queue is TransformedQueue => queue !== undefined);
+    }
+
+    // 如果还没有初始顺序，返回原始转换后的队列
+    return Array.from(queueMap.values());
+  }, [queues, initialQueueOrder]);
 
   // Set up fuzzy search with Fuse.js
   const fuseOptions = {
