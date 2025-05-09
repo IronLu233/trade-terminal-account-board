@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { Edit, MoreHorizontal, Search, Trash2, Play } from "lucide-react";
 import TemplateDialog from "./TemplateDialog";
-import TemplateRunDialog from "./TemplateRunDialog";
+// import TemplateRunDialog from "./TemplateRunDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateTemplate, useUpdateTemplate, useDeleteTemplate, TemplatePayload } from "@/hooks/useTemplates";
 
@@ -134,15 +134,6 @@ export default function TemplateList({ templates }: TemplateListProps) {
                       <TableCell>{format(template.updatedAt, 'MMM d, yyyy')}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end">
-                          <TemplateRunDialog
-                            template={template}
-                            trigger={
-                              <Button variant="ghost" size="icon" className="h-8 w-8 p-0 mr-1">
-                                <Play className="h-4 w-4" />
-                                <span className="sr-only">Run template</span>
-                              </Button>
-                            }
-                          />
 
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
