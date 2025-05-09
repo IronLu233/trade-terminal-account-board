@@ -108,6 +108,13 @@ export default function QueueList() {
 
   const queues = (data?.queues || []) as Queue[];
 
+
+  useEffect(() => {
+    if (activeWorker) {
+      setInitialQueueOrder([])
+    }
+  }, [activeWorker]);
+
   // 设置初始队列顺序
   useEffect(() => {
     if (queues.length > 0 && initialQueueOrder.length === 0) {
