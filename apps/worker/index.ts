@@ -3,24 +3,19 @@ import { WORKER_NAME, workers } from "./appState";
 import { closeAllWorkers, setupBullMQWorker } from "./worker";
 import { handleRedisRoute, handleUpdateSystemInfo } from "./routes";
 import { redisChannel } from "./redis";
+import mongoose from "mongoose";
 
 async function main() {
-  const config = await configDb.read();
-  if (!config) {
-    throw new Error(
-      "Configuration not found. Please copy config.example.yaml to config.yaml and update the configuration."
-    );
-  }
+  await mongoose.connect(Env.MONGODB_URL)
 
-  const {
-    provider: { accounts },
-  } = config;
+  const accounts = await configDb.AccountModel.find()
 
-  workers.push(...accounts.map(setupBullMQWorker));
+  workers.push(...accounts.map(({ account }) => setupBullMQWorker(account)));
 
   await redisChannel.subscribe(
-    RedisChannel.CreateWorker,
-    RedisChannel.TerminateJob
+    RedisChannel.CreateAccount,
+    RedisChannel.TerminateJob,
+    RedisChannel.RemoveAccount
   );
 
   redisChannel.on("message", handleRedisRoute);

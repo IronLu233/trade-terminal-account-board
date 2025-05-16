@@ -2,7 +2,7 @@ import { type FastifyPluginAsync } from "fastify";
 import { boolean, z } from "zod";
 import si from "systeminformation";
 import { redis } from "../services/redis";
-import { configDb, type Config } from "config";
+import { configDb } from "config";
 import { getSystemInfoRedisKey } from "common";
 
 const systemInfoSchema = z.object({
@@ -30,9 +30,7 @@ const systemInfoRoutes: FastifyPluginAsync = async (fastify) => {
     "/",
 
     async () => {
-      const {
-        customer: { workers: hosts },
-      } = (await configDb.read()) as Config;
+      const hosts = await configDb.WorkerModel.find();
 
       const machineHosts = hosts.map((it) => it.name);
 

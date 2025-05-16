@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Config } from "config";
 
 export function useServerConfig() {
-  return useQuery<Config>({
+  return useQuery<{ accounts: {account: string}[], workers: {name: string}[] }>({
     queryKey: ["serverConfig"],
     queryFn: async () => {
       const response = await fetch("/api/v2/config");

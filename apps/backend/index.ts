@@ -10,15 +10,18 @@ import templateRoutes from "./routes/template";
 import systemInfoRoutes from "./routes/system-info";
 import queueRoutes from "./routes/queue";
 import dashboardRoutes from "./routes/dashboard";
-import configRoutes from "./routes/config";
+import accountRoutes from "./routes/account";
+import configRoutes from './routes/config';
 import { setupQueues } from "./services/queue";
 import path from "path";
 import fastifyStatic from "@fastify/static";
 import { Env } from "config";
+import mongoose from "mongoose";
 
 const run = async () => {
   // Initialize database connection
   await initializeDatabase();
+  await mongoose.connect(Env.MONGODB_URL)
 
   await setupQueues();
 
@@ -56,7 +59,8 @@ const run = async () => {
   app.register(systemInfoRoutes, { prefix: "/api/v2/systemInfo" });
   app.register(queueRoutes, { prefix: "/api/v2/queue" });
   app.register(dashboardRoutes, { prefix: "/api/v2/dashboard" });
-  app.register(configRoutes, { prefix: "/api/v2/config" });
+  app.register(accountRoutes, { prefix: "/api/v2/account" });
+  app.register(configRoutes, { prefix: '/api/v2/config' })
 
   // Add catch-all route to handle SPA routing
   app.setNotFoundHandler(async (request, reply) => {

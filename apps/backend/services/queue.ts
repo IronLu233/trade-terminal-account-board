@@ -11,13 +11,10 @@ const createQueueMQ = (name: string) =>
   new QueueMQ(name, { connection: redisOptions });
 
 export async function setupQueues() {
-  const {
-    provider: { accounts },
-    customer: { workers },
-  } = (await configDb.read())!;
+  const [workers, accounts] = await Promise.all([configDb.WorkerModel.find(), configDb.AccountModel.find()])
 
   const queueNames = accounts.flatMap((account) =>
-    workers.map((host) => getQueueNameByAccount(account, host.name))
+    workers.map((host) => getQueueNameByAccount(account.account, host.name))
   );
 
   for (const name of queueNames) {
@@ -27,14 +24,31 @@ export async function setupQueues() {
   return Array.from(queueMap.values());
 }
 
+export async function setupSingleAccountQueue(account: string) {
+  const workers = await configDb.WorkerModel.find();
+  const queueNames = workers.map((host) => getQueueNameByAccount(account, host.name))
+
+  for (const name of queueNames) {
+    queueMap.set(name, createQueueMQ(name));
+  }
+}
+
+export async function removeAccountQueue(accountToRemove: string) {
+  for(const [key, queue] of queueMap) {
+    const { account } =  getHostAccountInfoFromQueueName(queue.name);
+    if (account === accountToRemove) {
+      await queue.close()
+      queueMap.delete(key);
+    }
+  }
+}
+
 export function getQueueByName(queueName: string) {
   return queueMap.get(queueName);
 }
 
 export async function getQueuesByAccount(account: string) {
-  const {
-    customer: { workers },
-  } = (await configDb.read())!;
+  const workers = await configDb.WorkerModel.find();
 
   const queueNames = workers.map((host) =>
     getQueueNameByAccount(account, host.name)
@@ -160,24 +174,4 @@ export async function getQueueListJson(hostName: string) {
 
 export function getQueueList() {
   return Array.from(queueMap.values());
-}
-
-export async function createQueue(name: string) {
-  const originConfig = await configDb.read();
-
-  if (queueMap.has(name)) {
-    throw new Error(`Queue with name "${name}" already exists`);
-  }
-
-  originConfig!.provider.accounts = [...originConfig!.provider.accounts!, name];
-
-  await configDb.write(originConfig!);
-
-  const queue = createQueueMQ(name);
-  queueMap.set(name, queue);
-  redisChannel.publish(
-    RedisChannel.CreateWorker,
-    JSON.stringify({ queueName: name })
-  );
-  return queue;
 }

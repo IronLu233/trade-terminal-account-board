@@ -31,5 +31,6 @@ export const Env = z
       .string()
       .default("3000")
       .transform((it) => parseInt(it)),
+    MONGODB_URL: z.string()
   })
   .parse(process.env);

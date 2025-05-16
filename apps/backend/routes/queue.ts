@@ -3,7 +3,6 @@ import {
   getQueueByName,
   getQueueListJson,
   getQueueWithJobs,
-  createQueue,
 } from "../services/queue";
 import { z } from "zod";
 import type { Job } from "bullmq";
@@ -30,34 +29,6 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
       const { hostname } = request.query;
       const queues = await getQueueListJson(hostname);
       return { list: queues };
-    }
-  );
-
-  fastify.post<{
-    Body: {
-      queueName: string;
-    };
-  }>(
-    "/",
-    {
-      schema: {
-        body: z.object({
-          queueName: z.string().min(1),
-        }),
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { queueName } = request.body;
-        await createQueue(queueName);
-        return reply.code(201).send({
-          success: true,
-          message: `Queue "${queueName}" has been created successfully`,
-        });
-      } catch (error) {
-        reply.code(400);
-        return { error: (error as Error).message };
-      }
     }
   );
 

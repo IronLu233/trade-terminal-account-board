@@ -7,6 +7,7 @@ import Templates from '@/pages/Templates';
 import QueueList from '@/pages/QueueList';
 import JobDetails from '@/pages/JobDetails';
 import QueueDetail from './pages/QueueDetail';
+import AccountPage from './pages/Account';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="queues/jobs/:queueName" element={<QueueDetail />} />
             <Route path="queues/jobs/:queueName/:jobId" element={<JobDetails />} />
             <Route path="templates" element={<Templates />} />
+            <Route path="accounts" element={<AccountPage />} />
           </Route>
         </Routes>
       </Router>

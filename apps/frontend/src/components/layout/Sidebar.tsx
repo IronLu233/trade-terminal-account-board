@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, RefreshCw, Inbox } from 'lucide-react';
+import { LayoutDashboard, FileText, RefreshCw, Inbox, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/queues', label: 'Queues', icon: Inbox },
   { path: '/templates', label: 'Templates', icon: FileText },
+  { path: '/accounts', label: 'Accounts', icon: Users },
 ];
 
 export default function Sidebar() {

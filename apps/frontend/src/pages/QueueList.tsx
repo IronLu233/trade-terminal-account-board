@@ -17,7 +17,6 @@ import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 
 import { QueueTemplateSelector } from "@/components/QueueTemplateSelector";
-// import { CreateQueueDialog } from "@/components/queues/CreateQueueDialog";
 import { Badge } from "@/components/ui/badge";
 import { getJobStatus } from "@/lib/utils";
 import { debounce } from "lodash-es";
@@ -98,7 +97,7 @@ export default function QueueList() {
   const [initialQueueOrder, setInitialQueueOrder] = useState<string[]>([]);
 
   const { data: configData, isLoading: isConfigLoading, isError: isConfigError } = useServerConfig();
-  const workers = configData?.customer?.workers || [];
+  const workers = configData?.workers || [];
   const firstWorker = workers[0]?.name;
 
   const { data, isLoading, refetch, isFetching } = useQueueList({

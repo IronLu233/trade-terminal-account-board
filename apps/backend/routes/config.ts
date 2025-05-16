@@ -3,7 +3,11 @@ import { configDb } from "config";
 
 export default async function (app: FastifyInstance) {
   app.get("/", async (request, reply) => {
-    const config = await configDb.read();
-    return config;
+    const [workers, accounts] = await Promise.all([configDb.WorkerModel.find(), configDb.AccountModel.find()])
+
+    return {
+      workers: workers.map(it => it.toJSON()),
+      accounts: accounts.map(it => it.toJSON())
+    }
   });
 }

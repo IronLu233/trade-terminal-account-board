@@ -53,6 +53,20 @@ export const useQueueList = ({ hostname, enabled }: UseQueueListOptions) => {
   });
 };
 
+/**
+ * 提供一个函数用于使队列列表缓存失效
+ * @returns 使队列列表缓存失效的函数
+ */
+export const useInvalidateQueueList = () => {
+  const queryClient = useQueryClient();
+
+  const invalidateQueueList = () => {
+    return queryClient.invalidateQueries({ queryKey: ['queues'] });
+  };
+
+  return { invalidateQueueList };
+};
+
 interface UseQueueDetailOptions {
   activeQueue?: string;
 }

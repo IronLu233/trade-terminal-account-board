@@ -1,32 +1,43 @@
 import YAML from "yaml";
 import path from "path";
+import * as mongoose from "mongoose";
 import { DataFile } from "lowdb/node";
 
 export * from "./env";
 
-export type Config = {
-  provider: {
-    accounts: string[];
-  };
-  customer: {
-    workers: Array<{
-      name: string;
-    }>;
-  };
-};
+// export type Config = {
+//   provider: {
+//     accounts: string[];
+//   };
+//   customer: {
+//     workers: Array<{
+//       name: string;
+//     }>;
+//   };
+// };
 
 export { redisOptions } from "./redis";
 
 export enum RedisChannel {
-  CreateWorker = "👷:create-worker",
+  CreateAccount = "👷:create-account",
   TerminateJob = "🔚:terminate-job",
-  GetSystemInfo = "system-info",
+  GetSystemInfo = "📊:system-info",
+  RemoveAccount = '❌:remove-account'
 }
 
-export const configDb = new DataFile<Config>(
-  path.join(__dirname, "./config.yaml"),
-  {
-    parse: YAML.parse,
-    stringify: YAML.stringify,
-  }
-);
+const accountSchema = new mongoose.Schema({
+  account: {type: String, required: true}
+})
+
+const AccountModel = mongoose.model('account', accountSchema);
+
+const workerSchema = new mongoose.Schema({
+  name: { type: String, required: true }
+})
+
+const WorkerModel = mongoose.model('worker', workerSchema);
+
+export const configDb = {
+  AccountModel,
+  WorkerModel
+}

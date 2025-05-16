@@ -15,6 +15,7 @@ import {
   PlayCircle,
   Loader2,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,11 +24,37 @@ import { AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useTerminateJob } from "@/hooks/useJobDetail";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function RecentJobs() {
   const { data: jobs, isLoading, error, refetch } = useRecentJobs();
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { toast } = useToast();
+  const [terminatingJob, setTerminatingJob] = useState<{id: string, queueName: string} | null>(null);
+  const [isTerminateDialogOpen, setIsTerminateDialogOpen] = useState(false);
+
+  const terminateJobMutation = useTerminateJob(
+    terminatingJob?.queueName || '',
+    terminatingJob?.id || ''
+  );
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -71,6 +98,40 @@ export default function RecentJobs() {
   const handleJobClick = (job: Job) => {
     if (job.id && job.queueName) {
       navigate(`/queues/jobs/${job.queueName}/${job.id}`);
+    }
+  };
+
+  const handleTerminateClick = (e: React.MouseEvent, job: Job) => {
+    e.stopPropagation();
+    if (job.id && job.queueName) {
+      setTerminatingJob({ id: job.id, queueName: job.queueName });
+      setIsTerminateDialogOpen(true);
+    }
+  };
+
+  const handleTerminateJob = async () => {
+    if (!terminatingJob) return;
+
+    try {
+      await terminateJobMutation.mutateAsync();
+      await refetch();
+
+      toast({
+        title: "Job terminated",
+        description: `Job #${terminatingJob.id} has been successfully terminated.`,
+        duration: 3000,
+      });
+
+    } catch (error) {
+      toast({
+        title: "Termination failed",
+        description: "Could not terminate the job. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsTerminateDialogOpen(false);
+      setTerminatingJob(null);
     }
   };
 
@@ -119,6 +180,7 @@ export default function RecentJobs() {
           <div className="space-y-3">
             {jobs.map((job) => {
               const status = getStatusText(job);
+              const isActive = status === "Active";
               return (
                 <div
                   key={`${job.queueName}-${job.id}`}
@@ -148,10 +210,32 @@ export default function RecentJobs() {
                         )}
                       </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {job.processedOn
-                        ? `Started ${formatDistanceToNow(job.processedOn)} ago`
-                        : "Not started yet"}
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="text-sm text-muted-foreground">
+                        {job.processedOn
+                          ? `Started ${formatDistanceToNow(job.processedOn)} ago`
+                          : "Not started yet"}
+                      </div>
+                      {isActive && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="h-6 px-2"
+                                onClick={(e) => handleTerminateClick(e, job)}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Terminate
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Terminate this job</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -160,6 +244,38 @@ export default function RecentJobs() {
           </div>
         )}
       </CardContent>
+
+      {/* 终止作业确认对话框 */}
+      <AlertDialog
+        open={isTerminateDialogOpen}
+        onOpenChange={setIsTerminateDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to terminate this job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The job will be stopped and marked as terminated.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={terminateJobMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleTerminateJob}
+              disabled={terminateJobMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {terminateJobMutation.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Terminating...
+                </>
+              ) : (
+                "Terminate"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

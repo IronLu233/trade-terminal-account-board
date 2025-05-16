@@ -10,7 +10,6 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useSystemInfo } from '@/hooks/useSystemInfo';
-import { useNavigate } from 'react-router-dom'; // Add this import
 
 function ErrorFallback() {
   return (
