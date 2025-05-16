@@ -92,7 +92,7 @@ export function setupBullMQWorker(account: string) {
       connection: redisOptions,
       maxStalledCount: 0,
       concurrency: 10,
-      stalledInterval: 120000,
+      skipStalledCheck: true,
     }
   );
 
