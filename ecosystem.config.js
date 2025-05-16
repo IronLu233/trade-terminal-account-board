@@ -20,8 +20,7 @@ module.exports = {
   ],
   deploy: {
     app: {
-      user: "ubuntu",
-      host: ['35.74.195.20'],
+      host: ['arb04'],
       ref: "origin/v2",
       repo: "git@github.com:IronLu233/trade-terminal-account-board.git",
       path: "/home/ubuntu/bull-dashboard-app",
@@ -29,8 +28,7 @@ module.exports = {
         "source ~/.zshrc && bun install && bun run build && pm2 startOrRestart ecosystem.config.js --only account-board-v2",
     },
     worker: {
-      user: "ubuntu",
-      host: ["3.115.99.150", "3.115.219.178", "52.197.123.66", "54.150.211.30"],
+      host: ["arb06", "arb07", "arb08", "soloserver"],
       ref: "origin/v2",
       repo: "git@github.com:IronLu233/trade-terminal-account-board.git",
       path: "/home/ubuntu/bull-dashboard-worker",
