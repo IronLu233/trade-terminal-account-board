@@ -3,6 +3,9 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 
 @Entity("worker_log")
 @Index("worker_log_pkey", ["id", "timestamp"], { unique: true })
 @Index("worker_log_jobid_timestamp_index", ["jobId", "timestamp"])
+@Index("idx_worker_log_worker_id", ["workerId", "timestamp"])
+@Index("idx_worker_log_job_id", ["jobId", "timestamp"])
+@Index("worker_log_timestamp_idx", ["timestamp"])
 export class WorkerLog {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -14,14 +17,11 @@ export class WorkerLog {
   message!: string;
 
   @Column("text")
-  @Index("idx_worker_log_worker_id")
   workerId!: string;
 
   @Column({ nullable: true, type: 'text' })
-  @Index("idx_worker_log_job_id")
   jobId!: string;
 
   @CreateDateColumn()
-  @Index("worker_log_timestamp_idx")
   timestamp!: Date;
 }
