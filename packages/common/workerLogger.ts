@@ -1,7 +1,8 @@
 import winston from "winston";
 import colors from "colors/safe";
+import { PostgresTransport } from "./winston-postgres-transport";
 
-// Define log level colors
+// 定义日志级别颜色
 const levelColors = {
   error: "red",
   warn: "yellow",
@@ -11,10 +12,10 @@ const levelColors = {
   silly: "grey",
 } as const;
 
-// Define a type for the color functions in colors/safe
+// 定义colors/safe中颜色函数的类型
 type ColorFunction = (text: string) => string;
 
-// Create custom format with colors
+// 创建带颜色的自定义格式
 const customFormat = winston.format.printf(
   ({ level, message, timestamp, ...metadata }) => {
     const levelLower = level.toLowerCase() as keyof typeof levelColors;
@@ -32,21 +33,30 @@ const customFormat = winston.format.printf(
   }
 );
 
-// Create and configure the logger
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || "info",
-  format: winston.format.combine(
-    winston.format.timestamp({
-      format: "YYYY-MM-DD HH:mm:ss",
-    }),
-    winston.format.errors({ stack: true }),
-    customFormat
-  ),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.Console(),
-    new winston.transports.Console(),
-  ],
-});
+// 创建Worker Logger工厂函数
+export const createWorkerLogger = (options: {
+  workerId: string;
+  jobId: string;
+}) => {
+  return winston.createLogger({
+    level: process.env.LOG_LEVEL || "info",
+    format: winston.format.combine(
+      winston.format.timestamp({
+        format: "YYYY-MM-DD HH:mm:ss",
+      }),
+      winston.format.errors({ stack: true }),
+      customFormat
+    ),
+    transports: [
+      new PostgresTransport({
+        workerId: options.workerId,
+        jobId: options.jobId,
+      }),
+    ],
+  });
+};
 
-export default logger;
+// 创建默认的Worker Logger实例
+const workerLogger = createWorkerLogger({});
+
+export default workerLogger;

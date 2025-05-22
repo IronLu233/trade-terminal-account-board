@@ -1,4 +1,5 @@
 import {
+  createWorkerLogger,
   getCurrentWorkerJobKey,
   getHostAccountInfoFromQueueName,
   getQueueNameByAccount,
@@ -14,6 +15,7 @@ export function setupBullMQWorker(account: string) {
     `Setting up BullMQ worker for queue: ${account} in ${WORKER_NAME}`
   );
 
+
   const worker = new Worker<JobPayload, { completedAt: Date }>(
     getQueueNameByAccount(account, process.env.HOST_NAME),
     async (job) => {
@@ -21,6 +23,11 @@ export function setupBullMQWorker(account: string) {
         jobId: job.id,
         data: job.data,
       });
+    const workerLogger = createWorkerLogger({
+      jobId: job.id!,
+      workerId: worker.id
+    })
+
 
       return new Promise((resolve, reject) => {
         const { script, arguments: args, executionPath } = job.data;
@@ -54,11 +61,11 @@ export function setupBullMQWorker(account: string) {
         child.stderr.on("data", (data: Buffer) => {
           stderr = `${data.toString()}`;
           logger.warn(`Job ${job.id} stderr:`, { stderr: data.toString() });
-          job.log(`${new Date().toISOString()}[WARN]${data.toString()}`);
+          workerLogger.error(`${new Date().toISOString()}[WARN]${data.toString()}`);
         });
 
         child.stdout.on("data", (data: Buffer) => {
-          job.log(`${new Date().toISOString()}[INFO]${data.toString()}`);
+          workerLogger.info(`${new Date().toISOString()}[INFO]${data.toString()}`);
         });
 
         child.on("close", (code) => {
