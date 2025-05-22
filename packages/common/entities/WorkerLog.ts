@@ -12,7 +12,7 @@ export class WorkerLog {
   message!: string;
 
   @Column({ type: "text", nullable: false })
-  @Index()
+  @PrimaryColumn('text')
   workerId!: string;
 
   @Column({ type: "text", nullable: false })
