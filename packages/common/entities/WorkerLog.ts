@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index, JoinColumn, ManyToOne, TableInheritance, PrimaryColumn } from "typeorm";
 
 @Entity("worker_log")
 export class WorkerLog {
@@ -16,11 +16,10 @@ export class WorkerLog {
   workerId!: string;
 
   @Column({ type: "text", nullable: false })
-  @Index()
+  @PrimaryColumn()
   jobId!: string;
 
   @CreateDateColumn({ type: 'timestamp' })
-  @Index()
+  @PrimaryColumn()
   timestamp!: Date;
-
 }
