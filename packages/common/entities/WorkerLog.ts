@@ -1,6 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index, JoinColumn, ManyToOne, TableInheritance, PrimaryColumn } from "typeorm";
+import { Hypertable, TimeColumn } from '@timescaledb/typeorm';
 
 @Entity("worker_log")
+@Hypertable({})
 export class WorkerLog {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -21,5 +23,6 @@ export class WorkerLog {
 
   @CreateDateColumn()
   @PrimaryColumn('date')
+  @TimeColumn()
   timestamp!: Date;
 }
