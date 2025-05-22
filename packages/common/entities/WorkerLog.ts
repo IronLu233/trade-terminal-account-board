@@ -16,10 +16,10 @@ export class WorkerLog {
   workerId!: string;
 
   @Column({ type: "text", nullable: false })
-  @PrimaryColumn()
+  @PrimaryColumn('text')
   jobId!: string;
 
-  @CreateDateColumn({ type: 'timestamp' })
-  @PrimaryColumn()
+  @CreateDateColumn()
+  @PrimaryColumn('date')
   timestamp!: Date;
 }
