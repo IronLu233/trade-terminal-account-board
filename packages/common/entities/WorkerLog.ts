@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 
 
 @Entity("worker_log")
 export class WorkerLog {
-  @Column('integer')
+  @PrimaryGeneratedColumn()
   id!: number;
 
   @Column({ type: "varchar", length: 255, nullable: false })
@@ -12,11 +12,15 @@ export class WorkerLog {
   message!: string;
 
   @Column({ type: "text", nullable: false })
+  @Index()
   workerId!: string;
 
   @Column({ type: "text", nullable: false })
+  @Index()
   jobId!: string;
 
   @CreateDateColumn({ type: 'timestamp' })
+  @Index()
   timestamp!: Date;
+
 }
