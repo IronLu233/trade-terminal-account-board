@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 
 
 @Entity("worker_log")
 export class WorkerLog {
-  @PrimaryGeneratedColumn()
+  @Column('integer')
   id!: number;
 
   @Column({ type: "varchar", length: 255, nullable: false })
