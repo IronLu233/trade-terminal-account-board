@@ -1,27 +1,30 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from "typeorm";
 
 @Entity("worker_log")
-@Index("worker_log_pkey", ["id", "timestamp"], { unique: true })
+@Index("idx_worker_log_worker_id", ["workerId"])
+@Index("idx_worker_log_job_id", ["jobId"])
 @Index("worker_log_jobid_timestamp_index", ["jobId", "timestamp"])
-@Index("idx_worker_log_worker_id", ["workerId", "timestamp"])
-@Index("idx_worker_log_job_id", ["jobId", "timestamp"])
-@Index("worker_log_timestamp_idx", ["timestamp"])
+@Index("worker_log_timestamp_idx", { synchronize: false })
 export class WorkerLog {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column('text')
+  @Column({ type: "varchar", length: 255, nullable: false })
   level!: string;
 
-  @Column("text")
+  @Column({ type: "text", nullable: false })
   message!: string;
 
-  @Column("text")
+  @Column({ type: "text", nullable: false })
   workerId!: string;
 
-  @Column({ nullable: true, type: 'text' })
+  @Column({ type: "text", nullable: false })
   jobId!: string;
 
-  @CreateDateColumn()
+  @Column({ type: "jsonb", nullable: true })
+  metadata!: Record<string, any> | null;
+
+  @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  @Index("worker_log_timestamp_idx", { synchronize: false })
   timestamp!: Date;
 }
