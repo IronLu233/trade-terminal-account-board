@@ -37,6 +37,7 @@ const customFormat = winston.format.printf(
 export const createWorkerLogger = (options: {
   workerId: string;
   jobId: string;
+  account: string;
 }) => {
   return winston.createLogger({
     level: process.env.LOG_LEVEL || "info",
@@ -51,6 +52,7 @@ export const createWorkerLogger = (options: {
       new WinstonPrismaTransport({
         workerId: options.workerId,
         jobId: options.jobId,
+        account: options.account
       }),
     ],
   });

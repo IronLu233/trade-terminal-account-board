@@ -128,7 +128,7 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const logs = await client.workerLog.findMany({
-        where: { jobId },
+        where: { jobId, account: getHostAccountInfoFromQueueName(queue.name).account },
         orderBy: { timestamp: "desc" },
         take: 100,
       });

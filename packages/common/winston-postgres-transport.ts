@@ -4,18 +4,21 @@ import { PrismaClient } from "./generated/prisma";
 const client = new PrismaClient();
 
 interface WinstonPrismaTransportOptions extends Transport.TransportStreamOptions {
-  workerId?: string;
-  jobId?: string;
+  workerId: string;
+  jobId: string;
+  account: string;
 }
 
 export class WinstonPrismaTransport extends Transport {
-  private workerId?: string;
-  private jobId?: string;
+  private workerId: string;
+  private jobId: string;
+  private account: string;
 
-  constructor(opts?: WinstonPrismaTransportOptions) {
+  constructor(opts: WinstonPrismaTransportOptions) {
     super(opts);
-    this.workerId = opts?.workerId;
-    this.jobId = opts?.jobId;
+    this.workerId = opts.workerId;
+    this.jobId = opts.jobId;
+    this.account = opts.account;
   }
 
   async log(info: any, callback: () => void) {
@@ -33,6 +36,7 @@ export class WinstonPrismaTransport extends Transport {
           message: message || "",
           workerId: workerId || this.workerId || "unknown",
           jobId: jobId || this.jobId || "unknown",
+          account: this.account,
           timestamp: timestamp ? new Date(timestamp) : new Date(),
         },
       });

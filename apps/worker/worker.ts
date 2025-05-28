@@ -25,7 +25,8 @@ export function setupBullMQWorker(account: string) {
       });
     const workerLogger = createWorkerLogger({
       jobId: job.id!,
-      workerId: worker.id
+      workerId: worker.id,
+      account,
     })
 
 

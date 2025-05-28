@@ -21,7 +21,7 @@ model WorkerLog {
   workerId  String   @db.Text
   jobId     String   @db.Text
   timestamp DateTime @default(now()) @db.Timestamp
-
+  account   String   @db.Text
   @@unique([workerId, jobId, timestamp])
   @@map("worker_log")
 }
