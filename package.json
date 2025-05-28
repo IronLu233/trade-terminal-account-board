@@ -5,7 +5,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "bun run --filter 'frontend' build"
+    "build": "bun run --filter 'frontend' build",
+    "postinstall": "cd ./packages/common && bun prisma generate"
   },
   "private": true,
   "devDependencies": {

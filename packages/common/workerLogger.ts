@@ -1,6 +1,6 @@
 import winston from "winston";
 import colors from "colors/safe";
-import { PostgresTransport } from "./winston-postgres-transport";
+import { WinstonPrismaTransport } from "./winston-postgres-transport";
 
 // 定义日志级别颜色
 const levelColors = {
@@ -48,15 +48,10 @@ export const createWorkerLogger = (options: {
       customFormat
     ),
     transports: [
-      new PostgresTransport({
+      new WinstonPrismaTransport({
         workerId: options.workerId,
         jobId: options.jobId,
       }),
     ],
   });
 };
-
-// 创建默认的Worker Logger实例
-const workerLogger = createWorkerLogger({});
-
-export default workerLogger;

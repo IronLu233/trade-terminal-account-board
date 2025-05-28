@@ -1,10 +1,10 @@
 import logger from "./logger";
-import workerLogger, { createWorkerLogger } from "./workerLogger";
-import { PostgresTransport } from "./winston-postgres-transport";
-import { initializePostgresDatabase } from "./database/postgres";
+import { createWorkerLogger } from "./workerLogger";
+import { WinstonPrismaTransport } from "./winston-postgres-transport";
 
 export * from "./types";
-export { logger, workerLogger, createWorkerLogger, PostgresTransport, initializePostgresDatabase };
+export { logger, createWorkerLogger, WinstonPrismaTransport };
 
 export * from "./misc";
-export * from "./entities/WorkerLog";
+
+export { PrismaClient } from './generated/prisma';

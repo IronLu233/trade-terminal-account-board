@@ -1,27 +1,21 @@
 import Transport from "winston-transport";
-import { PostgresDataSource } from "./database/postgres";
-import { WorkerLog } from "./entities/WorkerLog";
-import { initializePostgresDatabase } from "./database/postgres";
+import { PrismaClient } from "./generated/prisma";
 
-interface PostgresTransportOptions extends Transport.TransportStreamOptions {
-  workerId: string;
-  jobId: string;
+const client = new PrismaClient();
+
+interface WinstonPrismaTransportOptions extends Transport.TransportStreamOptions {
+  workerId?: string;
+  jobId?: string;
 }
 
-export class PostgresTransport extends Transport {
+export class WinstonPrismaTransport extends Transport {
   private workerId?: string;
-  private queueName?: string;
   private jobId?: string;
 
-  constructor(opts?: PostgresTransportOptions) {
+  constructor(opts?: WinstonPrismaTransportOptions) {
     super(opts);
     this.workerId = opts?.workerId;
     this.jobId = opts?.jobId;
-
-    // 初始化数据库连接
-    initializePostgresDatabase().catch(err => {
-      console.error("Failed to initialize PostgreSQL database:", err);
-    });
   }
 
   async log(info: any, callback: () => void) {
@@ -30,27 +24,27 @@ export class PostgresTransport extends Transport {
     });
 
     try {
-      const { level, message, timestamp, jobId, queueName, workerId, ...metadata } = info;
+      const { level, message, timestamp, jobId, workerId, ...metadata } = info;
 
-      // 确保数据库已连接
-      if (!PostgresDataSource.isInitialized) {
-        await initializePostgresDatabase();
-      }
+      // 使用 Prisma 客户端直接创建日志
+      await client.workerLog.create({
+        data: {
+          level: level || "info",
+          message: message || "",
+          workerId: workerId || this.workerId || "unknown",
+          jobId: jobId || this.jobId || "unknown",
+          timestamp: timestamp ? new Date(timestamp) : new Date(),
+        },
+      });
 
-      // 创建并保存日志
-      const logRepository = PostgresDataSource.getRepository(WorkerLog);
-      const log = new WorkerLog();
-      log.level = level;
-      log.message = message;
-      log.workerId = workerId || this.workerId;
-      log.jobId = jobId || this.jobId;
-      log.metadata = Object.keys(metadata).length ? metadata : null;
-
-      await logRepository.save(log);
       callback();
     } catch (error) {
       console.error("Error saving log to PostgreSQL:", error);
       callback();
     }
+  }
+
+  async close() {
+    await client.$disconnect();
   }
 }
