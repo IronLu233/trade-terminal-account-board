@@ -6,11 +6,9 @@ import {
 } from "../services/queue";
 import { z } from "zod";
 import type { Job } from "bullmq";
-import { getHostAccountInfoFromQueueName, type JobPayload, PrismaClient } from "common";
+import { getHostAccountInfoFromQueueName, type JobPayload } from "common";
 import { redisChannel } from "../services/redis";
 import { RedisChannel } from "config";
-
-const client = new PrismaClient();
 
 const queueRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all queues
@@ -127,13 +125,8 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
         return { error: `Queue with name "${queueName}" not found` };
       }
 
-      const logs = await client.workerLog.findMany({
-        where: { jobId, account: getHostAccountInfoFromQueueName(queue.name).account },
-        orderBy: { timestamp: "desc" },
-        take: 100,
-      });
-
-      return logs.map(log => log.message).reverse();
+      const { logs } = await queue.getJobLogs(jobId, 0, 100, false);
+      return logs.reverse();
     }
   );
 

@@ -89,6 +89,7 @@ function handleTerminateJob(message: string): void {
 }
 
 export async function handleUpdateSystemInfo() {
+  console.log(`[handleUpdateSystemInfo] Collecting system information...`);
   try {
     const [cpuData, memData, fsData] = await Promise.all([
       si.currentLoad(),

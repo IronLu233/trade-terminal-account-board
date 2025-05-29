@@ -5,6 +5,7 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
+import { initializeDatabase } from "./database/sqlite";
 import templateRoutes from "./routes/template";
 import systemInfoRoutes from "./routes/system-info";
 import queueRoutes from "./routes/queue";
@@ -19,6 +20,7 @@ import mongoose from "mongoose";
 
 const run = async () => {
   // Initialize database connection
+  await initializeDatabase();
   await mongoose.connect(Env.MONGODB_URL)
 
   await setupQueues();

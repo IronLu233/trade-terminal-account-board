@@ -151,7 +151,7 @@ export function useRunTemplate() {
       templateId,
       queueName,
     }: {
-      templateId: string;
+      templateId: number;
       queueName: string;
     }) => {
       const response = await fetch(`${TEMPLATES_API}/run`, {

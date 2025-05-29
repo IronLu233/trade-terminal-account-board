@@ -5,8 +5,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "bun run --filter 'frontend' build",
-    "postinstall": "cd ./packages/common && bun prisma generate"
+    "build": "bun run --filter 'frontend' build"
   },
   "private": true,
   "devDependencies": {
@@ -15,5 +14,7 @@
   "peerDependencies": {
     "typescript": "^5"
   },
-  "dependencies": {}
+  "dependencies": {
+    "mongoose": "^8.14.3"
+  }
 }

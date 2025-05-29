@@ -1,54 +1,18 @@
 import { type FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-
+import {
+  getTemplates,
+  getTemplateById,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
+} from "../repositories/TemplateRepository";
 import { getQueueByName } from "../services/queue";
 import { logger } from "common"; // Import the logger
-import mongoose from 'mongoose';
-
-
-const templateEntitySchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  script: { type: String, required: true },
-  arguments: { type: String, default: null },
-  executionPath: { type: String, default: null },
-}, {
-  timestamps: true // 这会自动添加 createdAt 和 updatedAt 字段
-});
-
-// 添加虚拟字段 id 来匹配 responseSchema
-templateEntitySchema.virtual('id').get(function() {
-  return this._id.toHexString();
-});
-
-// 确保虚拟字段在 JSON 输出中包含
-templateEntitySchema.set('toJSON', {
-  virtuals: true,
-  transform: function(doc, ret) {
-    ret.id = ret._id;
-    delete ret._id;
-    delete ret.__v;
-    return ret;
-  }
-});
-
-const TemplateModel = mongoose.model('Template', templateEntitySchema);
-
-// 公共方法：格式化模板数据以匹配 responseSchema
-const formatTemplate = (template: any): z.infer<typeof templateResponseSchema> => {
-  return {
-    id: template._id.toString(),
-    name: template.name,
-    script: template.script,
-    arguments: template.arguments,
-    executionPath: template.executionPath,
-    createdAt: template.createdAt,
-    updatedAt: template.updatedAt,
-  };
-};
 
 // Schema definitions
 const templateResponseSchema = z.object({
-  id: z.string(),
+  id: z.number(),
   name: z.string(),
   script: z.string(),
   arguments: z.string().nullable(),
@@ -79,15 +43,9 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     },
     handler: async (request, reply) => {
       logger.debug("Retrieving all templates");
-      const templates = await TemplateModel.find({})
-        .sort({ createdAt: -1 })
-        .lean();
-
-      // 转换数据格式以匹配 schema
-      const formattedTemplates = templates.map(formatTemplate);
-
-      logger.debug(`Retrieved ${formattedTemplates.length} templates`);
-      return formattedTemplates;
+      const templates = await getTemplates();
+      logger.debug(`Retrieved ${templates.length} templates`);
+      return templates;
     },
   });
 
@@ -97,7 +55,7 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     url: "/:id",
     schema: {
       params: z.object({
-        id: z.string(),
+        id: z.string().transform((val) => parseInt(val, 10)),
       }),
       response: {
         200: templateResponseSchema,
@@ -107,9 +65,9 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     handler: async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params as { id: number };
       logger.debug(`Retrieving template with id: ${id}`);
-      const template = await TemplateModel.findById(id).lean();
+      const template = await getTemplateById(id);
 
       if (!template) {
         logger.warn(`Template with id ${id} not found`);
@@ -117,11 +75,8 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
         return { message: `Template with id ${id} not found` };
       }
 
-      // 转换数据格式以匹配 schema
-      const formattedTemplate = formatTemplate(template);
-
       logger.debug(`Retrieved template: ${template.name}`);
-      return formattedTemplate;
+      return template;
     },
   });
 
@@ -138,18 +93,10 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     handler: async (request, reply) => {
       const templateData = request.body as any;
       logger.info(`Creating new template: ${templateData.name}`);
-      const template = new TemplateModel({
-        name: templateData.name,
-        script: templateData.script,
-        arguments: templateData.arguments || null,
-        executionPath: templateData.executionPath || null
-      });
-      const savedTemplate = await template.save();
-      logger.info(`Template created successfully with id: ${savedTemplate.id}`);
+      const template = await createTemplate(templateData);
+      logger.info(`Template created successfully with id: ${template.id}`);
       reply.code(201);
-
-      // 转换数据格式以匹配 schema
-      return formatTemplate(savedTemplate.toObject());
+      return template;
     },
   });
 
@@ -159,7 +106,7 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     url: "/:id",
     schema: {
       params: z.object({
-        id: z.string(),
+        id: z.string().transform((val) => parseInt(val, 10)),
       }),
       body: templateUpdateSchema,
       response: {
@@ -170,28 +117,21 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     handler: async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params as { id: number };
       const updateData = request.body as any;
       logger.info(`Updating template with id: ${id}`);
+      const existingTemplate = await getTemplateById(id);
 
-      const updatedTemplate = await TemplateModel.findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true, runValidators: true }
-      ).lean();
-
-      if (!updatedTemplate) {
+      if (!existingTemplate) {
         logger.warn(`Update failed: Template with id ${id} not found`);
         reply.code(404);
         return { message: `Template with id ${id} not found` };
       }
 
-      // 转换数据格式以匹配 schema
-      const formattedTemplate = formatTemplate(updatedTemplate);
-
+      const updatedTemplate = await updateTemplate(id, updateData);
       logger.info(`Template id ${id} updated successfully`);
       logger.debug(`Updated fields: ${Object.keys(updateData).join(", ")}`);
-      return formattedTemplate;
+      return updatedTemplate;
     },
   });
 
@@ -201,7 +141,7 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     url: "/:id",
     schema: {
       params: z.object({
-        id: z.string(),
+        id: z.string().transform((val) => parseInt(val, 10)),
       }),
       response: {
         200: z.object({
@@ -214,12 +154,11 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
     handler: async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params as { id: number };
       logger.info(`Deleting template with id: ${id}`);
+      const success = await deleteTemplate(id);
 
-      const deletedTemplate = await TemplateModel.findByIdAndDelete(id);
-
-      if (!deletedTemplate) {
+      if (!success) {
         logger.warn(`Deletion failed: Template with id ${id} not found`);
         reply.code(404);
         return { message: `Template with id ${id} not found` };
@@ -239,7 +178,7 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     url: "/run",
     schema: {
       body: z.object({
-        id: z.string(),
+        id: z.number(),
         queueName: z.string(),
       }),
       response: {
@@ -254,11 +193,11 @@ const templateRoutes: FastifyPluginAsync = async (fastify) => {
     },
     handler: async (request, reply) => {
       const { id, queueName } = request.body as {
-        id: string;
+        id: number;
         queueName: string;
       };
       logger.info(`Executing template id ${id} on queue ${queueName}`);
-      const template = await TemplateModel.findById(id).lean();
+      const template = await getTemplateById(id);
 
       if (!template) {
         logger.warn(`Execution failed: Template with id ${id} not found`);

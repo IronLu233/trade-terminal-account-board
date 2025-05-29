@@ -1,5 +1,4 @@
 import {
-  createWorkerLogger,
   getCurrentWorkerJobKey,
   getHostAccountInfoFromQueueName,
   getQueueNameByAccount,
@@ -15,20 +14,13 @@ export function setupBullMQWorker(account: string) {
     `Setting up BullMQ worker for queue: ${account} in ${WORKER_NAME}`
   );
 
-
-  const worker = new Worker(
+  const worker = new Worker<JobPayload, { completedAt: Date }>(
     getQueueNameByAccount(account, process.env.HOST_NAME),
     async (job) => {
       logger.info(`Starting job ${job.id} from queue ${account}`, {
         jobId: job.id,
         data: job.data,
       });
-    const workerLogger = createWorkerLogger({
-      jobId: job.id!,
-      workerId: worker.id,
-      account,
-    })
-
 
       return new Promise((resolve, reject) => {
         const { script, arguments: args, executionPath } = job.data;
@@ -61,11 +53,12 @@ export function setupBullMQWorker(account: string) {
         let stderr = "";
         child.stderr.on("data", (data: Buffer) => {
           stderr = `${data.toString()}`;
-          workerLogger.error(`${new Date().toISOString()}[WARN]${data.toString()}`);
+          logger.warn(`Job ${job.id} stderr:`, { stderr: data.toString() });
+          job.log(`${new Date().toISOString()}[WARN]${data.toString()}`);
         });
 
         child.stdout.on("data", (data: Buffer) => {
-          workerLogger.info(`${new Date().toISOString()}[INFO]${data.toString()}`);
+          job.log(`${new Date().toISOString()}[INFO]${data.toString()}`);
         });
 
         child.on("close", (code) => {
@@ -83,8 +76,6 @@ export function setupBullMQWorker(account: string) {
           async () => {
             if (child.exitCode === null) {
               child.kill("SIGINT");
-            } else {
-              job.moveToFailed(new Error('SIGINT'), job.token!)
             }
           }
         );
@@ -94,12 +85,7 @@ export function setupBullMQWorker(account: string) {
           pid: child.pid,
           command: ["pipenv", ...argv].join(" "),
         });
-        logger.info(`Job ${job.id} pid updated ${child.pid}`)
         return { jobId: `This is the return value of job (${job.id})` };
-      }).catch(error => {
-        logger.error('job started failed');
-        job.moveToFailed(error, job.token!)
-        return Promise.reject(error)
       });
     },
     {

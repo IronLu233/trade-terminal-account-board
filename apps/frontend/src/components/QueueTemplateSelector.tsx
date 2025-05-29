@@ -40,7 +40,7 @@ export function QueueTemplateSelector({ queueName }: QueueTemplateSelectorProps)
 
     try {
       const result = await runTemplateMutation.mutateAsync({
-        templateId: selectedTemplateId,
+        templateId: Number(selectedTemplateId),
         queueName,
       });
 

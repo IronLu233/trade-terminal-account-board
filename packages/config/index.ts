@@ -5,6 +5,17 @@ import { DataFile } from "lowdb/node";
 
 export * from "./env";
 
+// export type Config = {
+//   provider: {
+//     accounts: string[];
+//   };
+//   customer: {
+//     workers: Array<{
+//       name: string;
+//     }>;
+//   };
+// };
+
 export { redisOptions } from "./redis";
 
 export enum RedisChannel {
