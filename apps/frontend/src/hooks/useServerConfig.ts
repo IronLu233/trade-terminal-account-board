@@ -8,16 +8,7 @@ export function useServerConfig() {
       if (!response.ok) {
         throw new Error("Failed to fetch server config");
       }
-      const data = await response.json();
-
-      // Sort workers by name alphabetically (a to z)
-      if (data.workers) {
-        data.workers.sort((a: {name: string}, b: {name: string}) =>
-          a.name.localeCompare(b.name)
-        );
-      }
-
-      return data;
+      return response.json();
     },
   });
 }

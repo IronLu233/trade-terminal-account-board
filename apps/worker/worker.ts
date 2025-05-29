@@ -16,7 +16,7 @@ export function setupBullMQWorker(account: string) {
   );
 
 
-  const worker = new Worker(
+  const worker = new Worker<JobPayload, { completedAt: Date }>(
     getQueueNameByAccount(account, process.env.HOST_NAME),
     async (job) => {
       logger.info(`Starting job ${job.id} from queue ${account}`, {
@@ -61,6 +61,7 @@ export function setupBullMQWorker(account: string) {
         let stderr = "";
         child.stderr.on("data", (data: Buffer) => {
           stderr = `${data.toString()}`;
+          logger.warn(`Job ${job.id} stderr:`, { stderr: data.toString() });
           workerLogger.error(`${new Date().toISOString()}[WARN]${data.toString()}`);
         });
 
@@ -92,12 +93,7 @@ export function setupBullMQWorker(account: string) {
           pid: child.pid,
           command: ["pipenv", ...argv].join(" "),
         });
-        logger.info(`Job ${job.id} pid updated ${child.pid}`)
         return { jobId: `This is the return value of job (${job.id})` };
-      }).catch(error => {
-        logger.error('job started failed');
-        job.moveToFailed(error, job.token!)
-        return Promise.reject(error)
       });
     },
     {
