@@ -83,6 +83,8 @@ export function setupBullMQWorker(account: string) {
           async () => {
             if (child.exitCode === null) {
               child.kill("SIGINT");
+            } else {
+              job.moveToFailed(new Error('SIGINT'), job.token!)
             }
           }
         );

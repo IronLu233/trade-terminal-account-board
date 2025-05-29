@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import {
@@ -93,6 +93,7 @@ export default function JobDetails() {
   const [autoScroll, setAutoScroll] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isTerminateDialogOpen, setIsTerminateDialogOpen] = useState(false);
   const [isTerminating, setIsTerminating] = useState(false);
 
@@ -116,78 +117,99 @@ export default function JobDetails() {
 
   const terminateJobMutation = useTerminateJob(queueName || '', jobId || '');
 
-
   // Extract job data and format it for display
-  const job = jobData ? {
-    id: jobData.id,
-    name: jobData.name || 'Job ' + jobData.id,
-    status: getJobStatus(jobData),
-    queueName: queueName || '',
-    createdAt: new Date(jobData.timestamp),
-    updatedAt: jobData.finishedOn ? new Date(jobData.finishedOn) : new Date(),
-    duration: jobData.finishedOn && jobData.processedOn ?
-      jobData.finishedOn - jobData.processedOn : undefined,
-    command: jobData.data.command ?? ' ',
+  const job = useMemo(() => {
+    if (!jobData) return null;
 
-    parameters: jobData.data,
-    logs: [],
-    progress: jobData.progress || 0,
-    isFailed: !!jobData.failedReason || false,
-    failedReason: jobData.failedReason || '',
-    stacktrace: Array.isArray(jobData.stacktrace) ? jobData.stacktrace : []
-  } : null;
+    return {
+      id: jobData.id,
+      name: jobData.name || 'Job ' + jobData.id,
+      status: getJobStatus(jobData),
+      queueName: queueName || '',
+      createdAt: new Date(jobData.timestamp),
+      updatedAt: jobData.finishedOn ? new Date(jobData.finishedOn) : new Date(),
+      duration: jobData.finishedOn && jobData.processedOn ?
+        jobData.finishedOn - jobData.processedOn : undefined,
+      command: jobData.data.command ?? ' ',
+      parameters: jobData.data,
+      progress: jobData.progress || 0,
+      isFailed: !!jobData.failedReason || false,
+      failedReason: jobData.failedReason || '',
+      stacktrace: Array.isArray(jobData.stacktrace) ? jobData.stacktrace : []
+    };
+  }, [jobData, queueName]);
 
   // Merge logs from both sources whenever either changes
   useEffect(() => {
-    if (job && jobLogs) {
-      // Combine logs from job.logs and jobLogs, removing duplicates
-      const allLogs = [...new Set([...job.logs, ...jobLogs])];
-      setMergedLogs(allLogs);
-    } else if (job) {
-      setMergedLogs(job.logs);
-    } else if (jobLogs) {
+    if (jobLogs) {
       setMergedLogs(jobLogs);
     } else {
       setMergedLogs([]);
     }
-  }, [job, jobLogs]);
+  }, [jobLogs]);
 
   // Auto-scroll to bottom when new logs come in
   useEffect(() => {
-    if ((autoScroll && job?.status === "active" && mergedLogs.length > 0) || job?.status === 'completed') {
-        // Direct scrolling of the container div instead of using scrollIntoView
+    if (!scrollAreaContainerRef.current) return;
+
+    if ((autoScroll && job?.status === "active" && mergedLogs.length > 0) || (job?.status === 'completed' && autoScroll)) {
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
         if (scrollAreaContainerRef.current) {
           scrollAreaContainerRef.current.scrollTop = scrollAreaContainerRef.current.scrollHeight;
         }
+      });
     }
-  }, [mergedLogs, job?.status, autoScroll]);
+  }, [mergedLogs.length, job?.status]); // Remove autoScroll from dependencies to avoid loops
 
   // Handle scroll events to determine if user has manually scrolled up
   const handleScroll = () => {
     if (!scrollAreaContainerRef.current) return;
 
-    const { scrollTop, scrollHeight, clientHeight } = scrollAreaContainerRef.current;
-    // If user scrolled up (not at bottom), disable auto-scroll
-    // If user scrolled to bottom, enable auto-scroll
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 30;
-    setAutoScroll(isAtBottom);
+    // Clear existing timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    // Debounce the scroll handler
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (!scrollAreaContainerRef.current) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = scrollAreaContainerRef.current;
+      // If user scrolled up (not at bottom), disable auto-scroll
+      // If user scrolled to bottom, enable auto-scroll
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 30;
+
+      // Only update if the value actually changed
+      setAutoScroll(prev => {
+        if (prev !== isAtBottom) {
+          return isAtBottom;
+        }
+        return prev;
+      });
+    }, 100); // 100ms debounce
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Set up polling for logs if job is active
   useEffect(() => {
-    let intervalId: number | undefined;
-
     if (job?.status === "active") {
-      intervalId = window.setInterval(() => {
+      const intervalId = setInterval(() => {
         refetchLogs();
       }, 3000); // Poll every 3 seconds for active jobs
-    }
 
-    return () => {
-      if (intervalId !== undefined) {
+      return () => {
         clearInterval(intervalId);
-      }
-    };
+      };
+    }
   }, [job?.status, refetchLogs]);
 
   const handleRefresh = async () => {
@@ -200,10 +222,13 @@ export default function JobDetails() {
         duration: 3000,
       });
 
-      // Scroll to bottom of logs
-      setTimeout(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      // Enable auto-scroll and scroll to bottom
+      setAutoScroll(true);
+      requestAnimationFrame(() => {
+        if (scrollAreaContainerRef.current) {
+          scrollAreaContainerRef.current.scrollTop = scrollAreaContainerRef.current.scrollHeight;
+        }
+      });
     } catch (refreshError) {
       toast({
         title: "Refresh failed",
@@ -287,13 +312,15 @@ export default function JobDetails() {
   };
 
   // Filter logs based on search query
-  const getFilteredLogs = () => {
+  const filteredLogs = useMemo(() => {
     if (!mergedLogs || mergedLogs.length === 0) return [];
+
+    if (!logSearchQuery) return mergedLogs;
 
     return mergedLogs.filter(log =>
       log.toLowerCase().includes(logSearchQuery.toLowerCase())
     );
-  };
+  }, [mergedLogs, logSearchQuery]);
 
   const isLoading = isLoadingJob || isLoadingLogs;
   const isRefetching = isRefetchingJob || isRefetchingLogs;
@@ -338,8 +365,6 @@ export default function JobDetails() {
       </div>
     );
   }
-
-  const filteredLogs = getFilteredLogs();
 
   return (
     <div className="space-y-6">
