@@ -62,7 +62,7 @@ export default function QueueDetail() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchParams] = useSearchParams();
-  const statusParam = searchParams.get("status") as JobStatus || "latest";
+  const statusParam = searchParams.get("status") as JobStatus || "active";
   const [currentTab, setCurrentTab] = useState<JobStatus>(statusParam);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -366,13 +366,8 @@ export default function QueueDetail() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="latest" value={currentTab} onValueChange={setCurrentTab as never}>
-            <TabsList className="grid grid-cols-4 mb-6 h-10 gap-1">
-              <TabsTrigger value="latest" className="flex items-center justify-center h-full">
-                <div className="flex items-center">
-                  Latest
-                </div>
-              </TabsTrigger>
+          <Tabs defaultValue="active" value={currentTab} onValueChange={setCurrentTab as never}>
+            <TabsList className="grid grid-cols-3 mb-6 h-10 gap-1">
               <TabsTrigger value="active" className="flex items-center justify-center h-full">
                 <div className="flex items-center">
                   Active
@@ -401,10 +396,6 @@ export default function QueueDetail() {
                 />
               </div>
             </div>
-
-            <TabsContent value="latest" className="space-y-4">
-              <JobsTable jobs={filteredJobs} queueName={queueName || ''} refetch={refetch} currentTab={currentTab} />
-            </TabsContent>
 
             <TabsContent value="active" className="space-y-4">
               <JobsTable jobs={filteredJobs} queueName={queueName || ''} refetch={refetch} currentTab={currentTab} />
