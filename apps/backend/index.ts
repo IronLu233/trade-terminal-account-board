@@ -50,7 +50,6 @@ const run = async () => {
 
   app.register(fastifyStatic, {
     root: path.join(uiBasePath, "dist"),
-    maxAge: "1d",
     immutable: true,
   });
 
