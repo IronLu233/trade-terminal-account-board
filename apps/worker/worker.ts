@@ -11,7 +11,7 @@ import { spawn } from "child_process";
 import { jobCancelerMap, WORKER_NAME, workers } from "./appState";
 export function setupBullMQWorker(account: string) {
   logger.info(
-    `Setting up BullMQ worker for queue: ${account} in ${WORKER_NAME}`
+    `Setting up BullMQ worker for queue: ${getQueueNameByAccount(account, process.env.HOST_NAME)}`
   );
 
   const worker = new Worker<JobPayload, { completedAt: Date }>(
@@ -53,7 +53,6 @@ export function setupBullMQWorker(account: string) {
         let stderr = "";
         child.stderr.on("data", (data: Buffer) => {
           stderr = `${data.toString()}`;
-          logger.warn(`Job ${job.id} stderr:`, { stderr: data.toString() });
           job.log(`${new Date().toISOString()}[WARN]${data.toString()}`);
         });
 
