@@ -1,7 +1,12 @@
-import { useState, useMemo } from "react";
-import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
-import { useQueueDetail } from "../hooks/useQueueList";
-import { format } from "date-fns";
+import { useState, useMemo } from 'react';
+import {
+  useParams,
+  useNavigate,
+  Link,
+  useSearchParams,
+} from 'react-router-dom';
+import { useQueueDetail } from '../hooks/useQueueList';
+import { format } from 'date-fns';
 
 // shadcn UI components
 import {
@@ -10,7 +15,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   AlertCircle,
   RefreshCw,
@@ -20,12 +25,12 @@ import {
   XCircle,
   Search,
   SlidersHorizontal,
-} from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -33,42 +38,47 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 
-import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Progress } from "@/components/ui/progress";
-import { Job, JobStatus } from "@/types/queue";
+} from '@/components/ui/dropdown-menu';
+import { Progress } from '@/components/ui/progress';
+import { Job, JobStatus } from '@/types/queue';
 
 // Add import for RetryJobDialog and useRetryJob
-import { RetryJobDialog } from "@/components/dialogs/RetryJobDialog";
-import { useRetryJob } from "@/hooks/useJobDetail";
+import { RetryJobDialog } from '@/components/dialogs/RetryJobDialog';
+import { useRetryJob } from '@/hooks/useJobDetail';
 
 // Add this import at the top with other imports
-import { QueueTemplateSelector } from "@/components/QueueTemplateSelector";
+import { QueueTemplateSelector } from '@/components/QueueTemplateSelector';
 
 // Add these imports at the top
-import { RemoveJobDialog } from "@/components/dialogs/RemoveJobDialog";
-import { useRemoveJob } from "@/hooks/useJobDetail";
+import { RemoveJobDialog } from '@/components/dialogs/RemoveJobDialog';
+import { useRemoveJob } from '@/hooks/useJobDetail';
 
 export default function QueueDetail() {
   const { queueName } = useParams<{ queueName: string }>();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchParams] = useSearchParams();
-  const statusParam = searchParams.get("status") as JobStatus || "active";
+  const statusParam = (searchParams.get('status') as JobStatus) || 'active';
   const [currentTab, setCurrentTab] = useState<JobStatus>(statusParam);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Use the new useQueueDetail hook
-  const { data: queueDetail, error, refetch, isLoading } = useQueueDetail({
-    activeQueue: queueName
+  const {
+    data: queueDetail,
+    error,
+    refetch,
+    isLoading,
+  } = useQueueDetail({
+    activeQueue: queueName,
   });
 
   // Handle refresh
@@ -94,19 +104,20 @@ export default function QueueDetail() {
     (counts.delayed || 0) +
     (counts.paused || 0) +
     (counts.prioritized || 0) +
-    (counts["waiting-children"] || 0);
+    (counts['waiting-children'] || 0);
 
   // Calculate success rate
-  const successRate = totalJobs > 0
-    ? ((counts.completed || 0) / totalJobs) * 100
-    : 0;
+  const successRate =
+    totalJobs > 0 ? ((counts.completed || 0) / totalJobs) * 100 : 0;
 
   // Filter jobs based on search query
   const filteredJobs = jobs.filter((job) => {
-    return job.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return (
+      job.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.data?.account?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.data?.script?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.id.toString().includes(searchQuery.toLowerCase());
+      job.id.toString().includes(searchQuery.toLowerCase())
+    );
   });
 
   if (isLoading && !queueDetail) {
@@ -181,7 +192,7 @@ export default function QueueDetail() {
         <div className="flex items-center mb-6">
           <Button
             variant="outline"
-            onClick={() => navigate("/queues")}
+            onClick={() => navigate('/queues')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -193,7 +204,8 @@ export default function QueueDetail() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            Failed to load queue data: {(error as Error).message || "Unknown error occurred"}
+            Failed to load queue data:{' '}
+            {(error as Error).message || 'Unknown error occurred'}
           </AlertDescription>
         </Alert>
       </div>
@@ -206,7 +218,7 @@ export default function QueueDetail() {
         <div className="flex items-center mb-6">
           <Button
             variant="outline"
-            onClick={() => navigate("/queues")}
+            onClick={() => navigate('/queues')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -218,7 +230,8 @@ export default function QueueDetail() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Queue not found</AlertTitle>
           <AlertDescription>
-            The queue "{queueName}" does not exist or you don't have access to it.
+            The queue "{queueName}" does not exist or you don't have access to
+            it.
           </AlertDescription>
         </Alert>
       </div>
@@ -230,7 +243,7 @@ export default function QueueDetail() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Button
           variant="outline"
-          onClick={() => navigate("/queues")}
+          onClick={() => navigate('/queues')}
           className="flex items-center gap-2 self-start"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -243,7 +256,9 @@ export default function QueueDetail() {
           disabled={isRefreshing}
           className="flex items-center gap-2 self-start sm:self-auto"
         >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+          />
           Refresh
         </Button>
       </div>
@@ -252,9 +267,7 @@ export default function QueueDetail() {
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{queueName}</CardTitle>
-          <CardDescription>
-            Queue information and statistics
-          </CardDescription>
+          <CardDescription>Queue information and statistics</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -262,10 +275,10 @@ export default function QueueDetail() {
               <div>
                 <h3 className="text-sm font-medium mb-2">Queue Status</h3>
                 <div className="flex items-center gap-2">
-                  <Badge variant={queueDetail.isPaused ? "outline" : "default"}>
-                    {queueDetail.isPaused ? "Paused" : "Active"}
+                  <Badge variant={queueDetail.isPaused ? 'outline' : 'default'}>
+                    {queueDetail.isPaused ? 'Paused' : 'Active'}
                   </Badge>
-                  <Badge variant="outline">{queueDetail.type || "N/A"}</Badge>
+                  <Badge variant="outline">{queueDetail.type || 'N/A'}</Badge>
                 </div>
               </div>
 
@@ -290,30 +303,46 @@ export default function QueueDetail() {
                   <div className="flex flex-col items-center">
                     <div className="flex items-center gap-1">
                       <RefreshCw className="h-4 w-4 text-blue-500" />
-                      <span className="text-xl font-semibold">{counts.active || 0}</span>
+                      <span className="text-xl font-semibold">
+                        {counts.active || 0}
+                      </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">Active</span>
+                    <span className="text-xs text-muted-foreground">
+                      Active
+                    </span>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="flex items-center gap-1">
                       <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span className="text-xl font-semibold">{counts.completed || 0}</span>
+                      <span className="text-xl font-semibold">
+                        {counts.completed || 0}
+                      </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">Completed</span>
+                    <span className="text-xs text-muted-foreground">
+                      Completed
+                    </span>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="flex items-center gap-1">
                       <XCircle className="h-4 w-4 text-red-500" />
-                      <span className="text-xl font-semibold">{counts.failed || 0}</span>
+                      <span className="text-xl font-semibold">
+                        {counts.failed || 0}
+                      </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">Failed</span>
+                    <span className="text-xs text-muted-foreground">
+                      Failed
+                    </span>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4 text-yellow-500" />
-                      <span className="text-xl font-semibold">{counts.delayed || 0}</span>
+                      <span className="text-xl font-semibold">
+                        {counts.delayed || 0}
+                      </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">Delayed</span>
+                    <span className="text-xs text-muted-foreground">
+                      Delayed
+                    </span>
                   </div>
                 </div>
               </div>
@@ -328,7 +357,9 @@ export default function QueueDetail() {
               <h3 className="text-sm font-medium mb-2">Job Results</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Completed</span>
+                  <span className="text-sm text-muted-foreground">
+                    Completed
+                  </span>
                   <span className="text-sm">{counts.completed || 0}</span>
                 </div>
                 <Separator />
@@ -343,13 +374,21 @@ export default function QueueDetail() {
                 </div>
                 <Separator />
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Allow Retries</span>
-                  <span className="text-sm">{queueDetail.allowRetries ? "Yes" : "No"}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Allow Retries
+                  </span>
+                  <span className="text-sm">
+                    {queueDetail.allowRetries ? 'Yes' : 'No'}
+                  </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Read Only</span>
-                  <span className="text-sm">{queueDetail.readOnlyMode ? "Yes" : "No"}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Read Only
+                  </span>
+                  <span className="text-sm">
+                    {queueDetail.readOnlyMode ? 'Yes' : 'No'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -361,27 +400,32 @@ export default function QueueDetail() {
       <Card>
         <CardHeader>
           <CardTitle>Jobs</CardTitle>
-          <CardDescription>
-            All jobs in the {queueName} queue
-          </CardDescription>
+          <CardDescription>All jobs in the {queueName} queue</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="active" value={currentTab} onValueChange={setCurrentTab as never}>
+          <Tabs
+            defaultValue="active"
+            value={currentTab}
+            onValueChange={setCurrentTab as never}
+          >
             <TabsList className="grid grid-cols-3 mb-6 h-10 gap-1">
-              <TabsTrigger value="active" className="flex items-center justify-center h-full">
-                <div className="flex items-center">
-                  Active
-                </div>
+              <TabsTrigger
+                value="active"
+                className="flex items-center justify-center h-full"
+              >
+                <div className="flex items-center">Active</div>
               </TabsTrigger>
-              <TabsTrigger value="completed" className="flex items-center justify-center h-full">
-                <div className="flex items-center">
-                  Completed
-                </div>
+              <TabsTrigger
+                value="completed"
+                className="flex items-center justify-center h-full"
+              >
+                <div className="flex items-center">Completed</div>
               </TabsTrigger>
-              <TabsTrigger value="failed" className="flex items-center justify-center h-full">
-                <div className="flex items-center">
-                  Failed
-                </div>
+              <TabsTrigger
+                value="failed"
+                className="flex items-center justify-center h-full"
+              >
+                <div className="flex items-center">Failed</div>
               </TabsTrigger>
             </TabsList>
 
@@ -398,15 +442,30 @@ export default function QueueDetail() {
             </div>
 
             <TabsContent value="active" className="space-y-4">
-              <JobsTable jobs={filteredJobs} queueName={queueName || ''} refetch={refetch} currentTab={currentTab} />
+              <JobsTable
+                jobs={filteredJobs}
+                queueName={queueName || ''}
+                refetch={refetch}
+                currentTab={currentTab}
+              />
             </TabsContent>
 
             <TabsContent value="completed" className="space-y-4">
-              <JobsTable jobs={filteredJobs} queueName={queueName || ''} refetch={refetch} currentTab={currentTab} />
+              <JobsTable
+                jobs={filteredJobs}
+                queueName={queueName || ''}
+                refetch={refetch}
+                currentTab={currentTab}
+              />
             </TabsContent>
 
             <TabsContent value="failed" className="space-y-4">
-              <JobsTable jobs={filteredJobs} queueName={queueName || ''} refetch={refetch} currentTab={currentTab} />
+              <JobsTable
+                jobs={filteredJobs}
+                queueName={queueName || ''}
+                refetch={refetch}
+                currentTab={currentTab}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -416,11 +475,16 @@ export default function QueueDetail() {
 }
 
 // JobsTable component to display job data
-function JobsTable({ jobs, queueName, refetch, currentTab }: {
-  jobs: Job[],
-  queueName: string,
-  refetch: () => Promise<any>,
-  currentTab: JobStatus
+function JobsTable({
+  jobs,
+  queueName,
+  refetch,
+  currentTab,
+}: {
+  jobs: Job[];
+  queueName: string;
+  refetch: () => Promise<any>;
+  currentTab: JobStatus;
 }) {
   const [retryJobId, setRetryJobId] = useState<string | null>(null);
   const [removeJobId, setRemoveJobId] = useState<string | null>(null);
@@ -447,7 +511,7 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
     try {
       await removeJob.mutateAsync({
         queueName,
-        jobId: removeJobId
+        jobId: removeJobId,
       });
       refetch(); // Refetch the jobs list
     } catch (error) {
@@ -458,8 +522,8 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
   };
 
   // Get the jobs being modified
-  const jobToRetry = jobs.find(job => job.id === retryJobId);
-  const jobToRemove = jobs.find(job => job.id === removeJobId);
+  const jobToRetry = jobs.find((job) => job.id === retryJobId);
+  const jobToRemove = jobs.find((job) => job.id === removeJobId);
 
   // Sort jobs by finishedOn (most recent first) and then by processedOn
   const sortedJobs = useMemo(() => {
@@ -505,19 +569,21 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
     if (job.failedReason) {
       return <Badge variant="destructive">Failed</Badge>;
     } else if (job.finishedOn) {
-      return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+      return (
+        <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>
+      );
     } else {
       return <Badge variant="default">Active</Badge>;
     }
   };
 
   const formatDate = (timestamp: number) => {
-    if (!timestamp) return "N/A";
-    return format(new Date(timestamp), "yyyy-MM-dd HH:mm:ss");
+    if (!timestamp) return 'N/A';
+    return format(new Date(timestamp), 'yyyy-MM-dd HH:mm:ss');
   };
 
   const calculateDuration = (job: any) => {
-    if (!job.processedOn || !job.finishedOn) return "N/A";
+    if (!job.processedOn || !job.finishedOn) return 'N/A';
     const duration = job.finishedOn - job.processedOn;
     return `${(duration / 1000).toFixed(2)}s`;
   };
@@ -549,12 +615,14 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
                   {job.name}
                 </Link>
               </TableCell>
-              <TableCell>{job.data.templateName || job.data.script || "N/A"}</TableCell>
+              <TableCell>
+                {job.data.templateName || job.data.script || 'N/A'}
+              </TableCell>
               <TableCell>{formatDate(job.timestamp)}</TableCell>
               <TableCell>
                 {job.finishedOn
-                  ? format(new Date(job.finishedOn), "yyyy-MM-dd HH:mm:ss")
-                  : "N/A"}
+                  ? format(new Date(job.finishedOn), 'yyyy-MM-dd HH:mm:ss')
+                  : 'N/A'}
               </TableCell>
               <TableCell>{calculateDuration(job)}</TableCell>
               <TableCell>{getStatusBadge(job)}</TableCell>
@@ -567,7 +635,9 @@ function JobsTable({ jobs, queueName, refetch, currentTab }: {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link to={`/queues/jobs/${queueName}/${job.id}`}>View Details</Link>
+                      <Link to={`/queues/jobs/${queueName}/${job.id}`}>
+                        View Details
+                      </Link>
                     </DropdownMenuItem>
                     {/* <DropdownMenuItem onClick={() => setRetryJobId(job.id)}>
                       Retry Job

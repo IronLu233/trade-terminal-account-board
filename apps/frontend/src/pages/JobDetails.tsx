@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import {
   ArrowLeft,
   Clock,
@@ -12,12 +12,12 @@ import {
   Search,
   X,
   Copy,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,31 +27,33 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import JobStatusBadge from "@/components/queues/JobStatusBadge";
-import { useToast } from "@/hooks/use-toast";
-import { useJobDetail, useTerminateJob } from "@/hooks/useJobDetail";
-import { useJobLog } from "@/hooks/useJobLog";
-import { getJobStatus } from "@/lib/utils";
+} from '@/components/ui/tooltip';
+import JobStatusBadge from '@/components/queues/JobStatusBadge';
+import { useToast } from '@/hooks/use-toast';
+import { useJobDetail, useTerminateJob } from '@/hooks/useJobDetail';
+import { useJobLog } from '@/hooks/useJobLog';
+import { getJobStatus } from '@/lib/utils';
 
 // Helper function to parse log entries
 const parseLogEntry = (log: string) => {
   // Check if log entry has ISO timestamp format (e.g., 2025-03-05T07:30:06.430Z)
-  const timestampMatch = log.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)/);
+  const timestampMatch = log.match(
+    /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)/,
+  );
 
   if (timestampMatch) {
     const timestamp = new Date(timestampMatch[1].trim());
     return {
       timestamp,
-      formattedTimestamp: format(timestamp, "yy-MM-dd HH:mm:ss"),
+      formattedTimestamp: format(timestamp, 'yy-MM-dd HH:mm:ss'),
       content: log.substring(timestampMatch[0].length).trim(),
-      raw: log
+      raw: log,
     };
   }
 
@@ -62,32 +64,37 @@ const parseLogEntry = (log: string) => {
     return {
       level: levelMatch[1],
       content: log.substring(levelMatch[0].length).trim(),
-      raw: log
+      raw: log,
     };
   }
 
   // Default case - no special formatting
   return {
     content: log,
-    raw: log
+    raw: log,
   };
 };
 
 // Helper function to determine if a log is an error
 const isErrorLog = (log: string) => {
-  return log.includes("[ERROR]") ||
-         log.includes("Error:") ||
-         log.includes("Exception:") ||
-         log.toLowerCase().includes("failed") ||
-         log.toLowerCase().includes("failure");
+  return (
+    log.includes('[ERROR]') ||
+    log.includes('Error:') ||
+    log.includes('Exception:') ||
+    log.toLowerCase().includes('failed') ||
+    log.toLowerCase().includes('failure')
+  );
 };
 
 export default function JobDetails() {
-  const { queueName, jobId } = useParams<{ queueName: string, jobId: string }>();
+  const { queueName, jobId } = useParams<{
+    queueName: string;
+    jobId: string;
+  }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [logSearchQuery, setLogSearchQuery] = useState("");
+  const [logSearchQuery, setLogSearchQuery] = useState('');
   const [showTimestamps, setShowTimestamps] = useState(true);
   const [mergedLogs, setMergedLogs] = useState<string[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -103,7 +110,7 @@ export default function JobDetails() {
     isError: isJobError,
     error: jobError,
     refetch: refetchJob,
-    isRefetching: isRefetchingJob
+    isRefetching: isRefetchingJob,
   } = useJobDetail(queueName || '', jobId || '');
 
   const {
@@ -111,31 +118,36 @@ export default function JobDetails() {
     isLoading: isLoadingLogs,
     isError: isLogsError,
     refetch: refetchLogs,
-    isRefetching: isRefetchingLogs
+    isRefetching: isRefetchingLogs,
   } = useJobLog({ queueName: queueName || '', jobId: jobId || '' });
 
   const terminateJobMutation = useTerminateJob(queueName || '', jobId || '');
 
-
   // Extract job data and format it for display
-  const job = jobData ? {
-    id: jobData.id,
-    name: jobData.name || 'Job ' + jobData.id,
-    status: getJobStatus(jobData),
-    queueName: queueName || '',
-    createdAt: new Date(jobData.timestamp),
-    updatedAt: jobData.finishedOn ? new Date(jobData.finishedOn) : new Date(),
-    duration: jobData.finishedOn && jobData.processedOn ?
-      jobData.finishedOn - jobData.processedOn : undefined,
-    command: jobData.data.command ?? ' ',
+  const job = jobData
+    ? {
+        id: jobData.id,
+        name: jobData.name || 'Job ' + jobData.id,
+        status: getJobStatus(jobData),
+        queueName: queueName || '',
+        createdAt: new Date(jobData.timestamp),
+        updatedAt: jobData.finishedOn
+          ? new Date(jobData.finishedOn)
+          : new Date(),
+        duration:
+          jobData.finishedOn && jobData.processedOn
+            ? jobData.finishedOn - jobData.processedOn
+            : undefined,
+        command: jobData.data.command ?? ' ',
 
-    parameters: jobData.data,
-    logs: [],
-    progress: jobData.progress || 0,
-    isFailed: !!jobData.failedReason || false,
-    failedReason: jobData.failedReason || '',
-    stacktrace: Array.isArray(jobData.stacktrace) ? jobData.stacktrace : []
-  } : null;
+        parameters: jobData.data,
+        logs: [],
+        progress: jobData.progress || 0,
+        isFailed: !!jobData.failedReason || false,
+        failedReason: jobData.failedReason || '',
+        stacktrace: Array.isArray(jobData.stacktrace) ? jobData.stacktrace : [],
+      }
+    : null;
 
   // Merge logs from both sources whenever either changes
   useEffect(() => {
@@ -154,11 +166,15 @@ export default function JobDetails() {
 
   // Auto-scroll to bottom when new logs come in
   useEffect(() => {
-    if ((autoScroll && job?.status === "active" && mergedLogs.length > 0) || job?.status === 'completed') {
-        // Direct scrolling of the container div instead of using scrollIntoView
-        if (scrollAreaContainerRef.current) {
-          scrollAreaContainerRef.current.scrollTop = scrollAreaContainerRef.current.scrollHeight;
-        }
+    if (
+      (autoScroll && job?.status === 'active' && mergedLogs.length > 0) ||
+      job?.status === 'completed'
+    ) {
+      // Direct scrolling of the container div instead of using scrollIntoView
+      if (scrollAreaContainerRef.current) {
+        scrollAreaContainerRef.current.scrollTop =
+          scrollAreaContainerRef.current.scrollHeight;
+      }
     }
   }, [mergedLogs, job?.status, autoScroll]);
 
@@ -166,7 +182,8 @@ export default function JobDetails() {
   const handleScroll = () => {
     if (!scrollAreaContainerRef.current) return;
 
-    const { scrollTop, scrollHeight, clientHeight } = scrollAreaContainerRef.current;
+    const { scrollTop, scrollHeight, clientHeight } =
+      scrollAreaContainerRef.current;
     // If user scrolled up (not at bottom), disable auto-scroll
     // If user scrolled to bottom, enable auto-scroll
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 30;
@@ -177,7 +194,7 @@ export default function JobDetails() {
   useEffect(() => {
     let intervalId: number | undefined;
 
-    if (job?.status === "active") {
+    if (job?.status === 'active') {
       intervalId = window.setInterval(() => {
         refetchLogs();
       }, 3000); // Poll every 3 seconds for active jobs
@@ -195,8 +212,8 @@ export default function JobDetails() {
       await Promise.all([refetchJob(), refetchLogs()]);
 
       toast({
-        title: "Job refreshed",
-        description: "Latest job information has been loaded.",
+        title: 'Job refreshed',
+        description: 'Latest job information has been loaded.',
         duration: 3000,
       });
 
@@ -206,9 +223,9 @@ export default function JobDetails() {
       }, 100);
     } catch (refreshError) {
       toast({
-        title: "Refresh failed",
-        description: "Could not refresh job information.",
-        variant: "destructive",
+        title: 'Refresh failed',
+        description: 'Could not refresh job information.',
+        variant: 'destructive',
         duration: 5000,
       });
     }
@@ -224,16 +241,15 @@ export default function JobDetails() {
       await refetchJob();
 
       toast({
-        title: "Job terminated",
+        title: 'Job terminated',
         description: `Job #${jobId} has been successfully terminated.`,
         duration: 3000,
       });
-
     } catch (error) {
       toast({
-        title: "Termination failed",
-        description: "Could not terminate the job. Please try again.",
-        variant: "destructive",
+        title: 'Termination failed',
+        description: 'Could not terminate the job. Please try again.',
+        variant: 'destructive',
         duration: 5000,
       });
     } finally {
@@ -247,8 +263,8 @@ export default function JobDetails() {
     setCopied(true);
 
     toast({
-      title: "Copied to clipboard",
-      description: "The content has been copied to your clipboard.",
+      title: 'Copied to clipboard',
+      description: 'The content has been copied to your clipboard.',
       duration: 3000,
     });
 
@@ -258,8 +274,8 @@ export default function JobDetails() {
   const copyAllLogs = () => {
     if (!mergedLogs || mergedLogs.length === 0) {
       toast({
-        title: "No logs",
-        description: "There are no logs to copy.",
+        title: 'No logs',
+        description: 'There are no logs to copy.',
         duration: 3000,
       });
       return;
@@ -272,11 +288,11 @@ export default function JobDetails() {
   const copyErrorLogs = () => {
     if (!mergedLogs || mergedLogs.length === 0) return;
 
-    const errorLogs = mergedLogs.filter(log => isErrorLog(log));
+    const errorLogs = mergedLogs.filter((log) => isErrorLog(log));
     if (errorLogs.length === 0) {
       toast({
-        title: "No error logs",
-        description: "There are no error logs to copy.",
+        title: 'No error logs',
+        description: 'There are no error logs to copy.',
         duration: 3000,
       });
       return;
@@ -290,15 +306,15 @@ export default function JobDetails() {
   const getFilteredLogs = () => {
     if (!mergedLogs || mergedLogs.length === 0) return [];
 
-    return mergedLogs.filter(log =>
-      log.toLowerCase().includes(logSearchQuery.toLowerCase())
+    return mergedLogs.filter((log) =>
+      log.toLowerCase().includes(logSearchQuery.toLowerCase()),
     );
   };
 
   const isLoading = isLoadingJob || isLoadingLogs;
   const isRefetching = isRefetchingJob || isRefetchingLogs;
   const isError = isJobError || isLogsError;
-  const error = jobError || "Failed to load logs";
+  const error = jobError || 'Failed to load logs';
 
   if (isLoading && !job) {
     return (
@@ -308,14 +324,13 @@ export default function JobDetails() {
     );
   }
 
-
   if (isError || !job) {
     return (
       <div className="space-y-4">
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/queues/jobs/${queueName}`)}
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -347,7 +362,7 @@ export default function JobDetails() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/queues/jobs/${queueName}`)}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Jobs
@@ -361,31 +376,31 @@ export default function JobDetails() {
             disabled={isRefetching}
           >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
+              className={`mr-2 h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`}
             />
             Refresh
           </Button>
 
-            {job.status === "active" && (
+          {job.status === 'active' && (
             <TooltipProvider>
               <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setIsTerminateDialogOpen(true)}
-                disabled={isTerminating}
-                >
-                <X className="mr-2 h-4 w-4" />
-                Terminate Job
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Terminate this job</p>
-              </TooltipContent>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setIsTerminateDialogOpen(true)}
+                    disabled={isTerminating}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Terminate Job
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Terminate this job</p>
+                </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            )}
+          )}
         </div>
       </div>
 
@@ -396,13 +411,18 @@ export default function JobDetails() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to terminate this job?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Are you sure you want to terminate this job?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The job will be stopped and marked as terminated.
+              This action cannot be undone. The job will be stopped and marked
+              as terminated.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isTerminating}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isTerminating}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleTerminateJob}
               disabled={isTerminating}
@@ -414,7 +434,7 @@ export default function JobDetails() {
                   Terminating...
                 </>
               ) : (
-                "Terminate"
+                'Terminate'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -440,16 +460,21 @@ export default function JobDetails() {
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
-                    Started: {format(job.createdAt, "MMM d, yyyy HH:mm:ss")}
+                    Started: {format(job.createdAt, 'MMM d, yyyy HH:mm:ss')}
                   </span>
                 </div>
 
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {job.status === "completed" ? "Completed" : job.status === "failed" ? "Failed" : "Updated"}: {format(job.updatedAt, "MMM d, yyyy HH:mm:ss")}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {job.status === 'completed'
+                      ? 'Completed'
+                      : job.status === 'failed'
+                        ? 'Failed'
+                        : 'Updated'}
+                    : {format(job.updatedAt, 'MMM d, yyyy HH:mm:ss')}
+                  </span>
+                </div>
 
                 {job.duration && (
                   <div className="flex items-center gap-2">
@@ -495,7 +520,9 @@ export default function JobDetails() {
                             variant="outline"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={() => copyToClipboard(job.stacktrace.join('\n'))}
+                            onClick={() =>
+                              copyToClipboard(job.stacktrace.join('\n'))
+                            }
                           >
                             <Copy className="h-3.5 w-3.5" />
                           </Button>
@@ -509,7 +536,9 @@ export default function JobDetails() {
                   <ScrollArea className="h-[200px] w-full rounded-md bg-muted dark:bg-slate-950 p-4">
                     <div className="font-mono text-sm whitespace-pre-wrap text-red-600 dark:text-red-400">
                       {job.stacktrace.map((line, index) => (
-                        <div key={index} className="mb-1">{line}</div>
+                        <div key={index} className="mb-1">
+                          {line}
+                        </div>
                       ))}
                     </div>
                   </ScrollArea>
@@ -539,7 +568,9 @@ export default function JobDetails() {
                       variant="ghost"
                       size="icon"
                       className="absolute top-1/2 right-2 transform -translate-y-1/2"
-                      onClick={() => job.command && copyToClipboard(job.command)}
+                      onClick={() =>
+                        job.command && copyToClipboard(job.command)
+                      }
                     >
                       {copied ? (
                         <CheckCircle className="h-4 w-4 text-green-500" />
@@ -564,7 +595,9 @@ export default function JobDetails() {
           </CardHeader>
           <CardContent>
             <div className="bg-muted p-3 rounded-md font-mono text-sm overflow-x-auto whitespace-pre">
-              {job.parameters ? JSON.stringify(job.parameters, null, 2) : "No parameters"}
+              {job.parameters
+                ? JSON.stringify(job.parameters, null, 2)
+                : 'No parameters'}
             </div>
           </CardContent>
         </Card>
@@ -589,7 +622,7 @@ export default function JobDetails() {
                         size="sm"
                         onClick={() => setShowTimestamps(!showTimestamps)}
                       >
-                        {showTimestamps ? "Hide Timestamps" : "Show Timestamps"}
+                        {showTimestamps ? 'Hide Timestamps' : 'Show Timestamps'}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -631,7 +664,7 @@ export default function JobDetails() {
                   variant="ghost"
                   size="icon"
                   className="absolute right-2 top-2 h-5 w-5"
-                  onClick={() => setLogSearchQuery("")}
+                  onClick={() => setLogSearchQuery('')}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -639,76 +672,87 @@ export default function JobDetails() {
             </div>
 
             <Card className="bg-muted dark:bg-slate-950 border-none">
-                <div
-                  ref={scrollAreaContainerRef}
-                  onScroll={handleScroll}
-                  className="h-[400px] rounded-md p-4 overflow-auto"
-                >
-                  <div className="font-mono text-sm whitespace-pre-wrap">
-                    {filteredLogs && filteredLogs.length > 0 ? (
-                      filteredLogs.map((log, index) => {
-                        const parsedLog = parseLogEntry(log);
-                        const isError = isErrorLog(log);
+              <div
+                ref={scrollAreaContainerRef}
+                onScroll={handleScroll}
+                className="h-[400px] rounded-md p-4 overflow-auto"
+              >
+                <div className="font-mono text-sm whitespace-pre-wrap">
+                  {filteredLogs && filteredLogs.length > 0 ? (
+                    filteredLogs.map((log, index) => {
+                      const parsedLog = parseLogEntry(log);
+                      const isError = isErrorLog(log);
 
-                        return (
-                          <div
-                            key={index}
-                            className={`mb-1 ${isError ? "text-red-500 dark:text-red-400" : ""}`}
-                          >
-                            {showTimestamps && parsedLog.timestamp ? (
-                              <span>{parsedLog.formattedTimestamp} {parsedLog.content}</span>
-                            ) : (
-                              <span>{parsedLog.content || parsedLog.raw}</span>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-muted-foreground">
-                        {logSearchQuery ? "No logs matching your search" : "No logs available"}
-                      </div>
-                    )}
+                      return (
+                        <div
+                          key={index}
+                          className={`mb-1 ${isError ? 'text-red-500 dark:text-red-400' : ''}`}
+                        >
+                          {showTimestamps && parsedLog.timestamp ? (
+                            <span>
+                              {parsedLog.formattedTimestamp} {parsedLog.content}
+                            </span>
+                          ) : (
+                            <span>{parsedLog.content || parsedLog.raw}</span>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-muted-foreground">
+                      {logSearchQuery
+                        ? 'No logs matching your search'
+                        : 'No logs available'}
+                    </div>
+                  )}
 
-                    {job.status === "active" && (
-                      <div className="flex items-center gap-2 mt-2 text-muted-foreground">
-                        <RefreshCw className="h-3 w-3 animate-spin" />
-                        <span>Job is still running... {isLoadingLogs ? "(Loading logs)" : ""}</span>
-                      </div>
-                    )}
+                  {job.status === 'active' && (
+                    <div className="flex items-center gap-2 mt-2 text-muted-foreground">
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                      <span>
+                        Job is still running...{' '}
+                        {isLoadingLogs ? '(Loading logs)' : ''}
+                      </span>
+                    </div>
+                  )}
 
-                    {/* We can keep this ref for compatibility but don't need to use it for scrolling */}
-                    <div ref={logsEndRef} />
-                  </div>
+                  {/* We can keep this ref for compatibility but don't need to use it for scrolling */}
+                  <div ref={logsEndRef} />
                 </div>
+              </div>
             </Card>
 
             <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
               <div>
-                {filteredLogs.length} {filteredLogs.length === 1 ? "entry" : "entries"} {logSearchQuery && "matching filter"}
+                {filteredLogs.length}{' '}
+                {filteredLogs.length === 1 ? 'entry' : 'entries'}{' '}
+                {logSearchQuery && 'matching filter'}
               </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs ${autoScroll ? "text-green-500" : "text-muted-foreground"}`}>
-                    {autoScroll ? "Auto-scroll enabled" : "Auto-scroll disabled"}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs py-0"
-                    onClick={() => {
-                      setAutoScroll(true);
-                      // Update the scroll to bottom action to use direct scrolling
-                      if (scrollAreaContainerRef.current) {
-                        scrollAreaContainerRef.current.scrollTop = scrollAreaContainerRef.current.scrollHeight;
-                      }
-                    }}
-                  >
-                    Scroll to Bottom
-                  </Button>
-                </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs ${autoScroll ? 'text-green-500' : 'text-muted-foreground'}`}
+                >
+                  {autoScroll ? 'Auto-scroll enabled' : 'Auto-scroll disabled'}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-xs py-0"
+                  onClick={() => {
+                    setAutoScroll(true);
+                    // Update the scroll to bottom action to use direct scrolling
+                    if (scrollAreaContainerRef.current) {
+                      scrollAreaContainerRef.current.scrollTop =
+                        scrollAreaContainerRef.current.scrollHeight;
+                    }
+                  }}
+                >
+                  Scroll to Bottom
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
-
       </div>
     </div>
   );
