@@ -24,7 +24,6 @@ import {
   CheckCircle,
   XCircle,
   Search,
-  SlidersHorizontal,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -42,25 +41,30 @@ import {
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+
 import { Progress } from '@/components/ui/progress';
 import { Job, JobStatus } from '@/types/queue';
 
 // Add import for RetryJobDialog and useRetryJob
 import { RetryJobDialog } from '@/components/dialogs/RetryJobDialog';
 import { useRetryJob } from '@/hooks/useJobDetail';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Add this import at the top with other imports
 import { QueueTemplateSelector } from '@/components/QueueTemplateSelector';
 
 // Add these imports at the top
 import { RemoveJobDialog } from '@/components/dialogs/RemoveJobDialog';
-import { useRemoveJob } from '@/hooks/useJobDetail';
+import { useRemoveJob, useTerminateJob } from '@/hooks/useJobDetail';
 
 export default function QueueDetail() {
   const { queueName } = useParams<{ queueName: string }>();
@@ -488,9 +492,12 @@ function JobsTable({
 }) {
   const [retryJobId, setRetryJobId] = useState<string | null>(null);
   const [removeJobId, setRemoveJobId] = useState<string | null>(null);
+  const [terminateJobId, setTerminateJobId] = useState<string | null>(null);
+  const [isTerminating, setIsTerminating] = useState(false);
 
   const retryJob = useRetryJob(queueName, retryJobId || '', currentTab);
   const removeJob = useRemoveJob();
+  const terminateJob = useTerminateJob(queueName, terminateJobId || '');
 
   const handleRetryConfirm = async () => {
     if (!retryJobId) return;
@@ -521,9 +528,25 @@ function JobsTable({
     }
   };
 
+  const handleTerminateConfirm = async () => {
+    if (!terminateJobId) return;
+
+    setIsTerminating(true);
+    try {
+      await terminateJob.mutateAsync();
+      refetch(); // Refetch the jobs list
+    } catch (error) {
+      console.error('Failed to terminate job:', error);
+    } finally {
+      setIsTerminating(false);
+      setTerminateJobId(null);
+    }
+  };
+
   // Get the jobs being modified
   const jobToRetry = jobs.find((job) => job.id === retryJobId);
   const jobToRemove = jobs.find((job) => job.id === removeJobId);
+  const jobToTerminate = jobs.find((job) => job.id === terminateJobId);
 
   // Sort jobs by finishedOn (most recent first) and then by processedOn
   const sortedJobs = useMemo(() => {
@@ -600,7 +623,7 @@ function JobsTable({
             <TableHead>Completed</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="w-[60px]"></TableHead>
+            <TableHead className="w-[200px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -627,29 +650,35 @@ function JobsTable({
               <TableCell>{calculateDuration(job)}</TableCell>
               <TableCell>{getStatusBadge(job)}</TableCell>
               <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                      <SlidersHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link to={`/queues/jobs/${queueName}/${job.id}`}>
-                        View Details
-                      </Link>
-                    </DropdownMenuItem>
-                    {/* <DropdownMenuItem onClick={() => setRetryJobId(job.id)}>
-                      Retry Job
-                    </DropdownMenuItem> */}
-                    <DropdownMenuItem
-                      onClick={() => setRemoveJobId(job.id)}
-                      className="text-red-600"
+                <div className="flex items-center gap-2">
+
+                  {!job.finishedOn && !job.failedReason && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setTerminateJobId(job.id)}
+                      disabled={isTerminating}
                     >
-                      Remove Job
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      {isTerminating && terminateJobId === job.id ? (
+                        <>
+                          <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                          Terminating...
+                        </>
+                      ) : (
+                        'Terminate'
+                      )}
+                    </Button>
+                  )}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRemoveJobId(job.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -673,6 +702,44 @@ function JobsTable({
           jobId={jobToRemove.id}
           jobName={jobToRemove.name}
         />
+      )}
+
+      {/* Terminate Job Dialog */}
+      {jobToTerminate && (
+        <AlertDialog
+          open={!!terminateJobId}
+          onOpenChange={(open) => !open && setTerminateJobId(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Are you sure you want to terminate this job?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. Job "{jobToTerminate.name}" (ID: {jobToTerminate.id}) will be stopped and marked as terminated.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isTerminating}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleTerminateConfirm}
+                disabled={isTerminating}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              >
+                {isTerminating ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Terminating...
+                  </>
+                ) : (
+                  'Terminate'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );

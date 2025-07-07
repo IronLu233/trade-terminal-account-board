@@ -50,6 +50,7 @@ export const useRetryJob = (
 
 export const useTerminateJob = (queueName: string, jobId: string) => {
   return useMutation({
+    mutationKey: [queueName, jobId],
     mutationFn: async () => {
       const response = await fetch(
         `/api/v2/queue/${queueName}/${jobId}/terminate`,

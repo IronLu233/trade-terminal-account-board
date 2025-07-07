@@ -216,6 +216,7 @@ export default function RecentJobs() {
                           ? `Started ${formatDistanceToNow(job.processedOn)} ago`
                           : "Not started yet"}
                       </div>
+                      {/* 只对正在运行的job显示Terminate按钮 */}
                       {isActive && (
                         <TooltipProvider>
                           <Tooltip>
