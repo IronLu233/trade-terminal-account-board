@@ -74,7 +74,25 @@ export function setupBullMQWorker(account: string) {
           getCurrentWorkerJobKey(account, job.id!),
           async () => {
             if (child.exitCode === null) {
-              child.kill("SIGINT");
+              // 分层终止策略：先温和，后强制
+              logger.info(`尝试温和终止进程 ${child.pid}`);
+              child.kill("SIGTERM");
+
+              // 等待 5 秒，如果进程还没有结束，则强制杀死
+              setTimeout(() => {
+                if (child.exitCode === null) {
+                  logger.warn(`强制杀死进程 ${child.pid}`);
+                  child.kill("SIGKILL");
+                  // 最后将进程设置为失败
+                  setTimeout(() => {
+                    job.moveToFailed(new Error("Force Kill"), job.id!);
+                  }, 5001);
+                }
+              }, 5000);
+            } else {
+              setTimeout(() => {
+                job.moveToFailed(new Error("Force Kill"), job.id!);
+              }, 5001);
             }
           }
         );
@@ -92,6 +110,7 @@ export function setupBullMQWorker(account: string) {
       maxStalledCount: 0,
       concurrency: 10,
       skipStalledCheck: true,
+      lockDuration: 5000,
     }
   );
 
