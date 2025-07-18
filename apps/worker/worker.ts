@@ -70,30 +70,26 @@ export function setupBullMQWorker(account: string) {
           }
         });
 
+        const pid = child.pid!;
+
         jobCancelerMap.set(
           getCurrentWorkerJobKey(account, job.id!),
           async () => {
-            if (child.exitCode === null) {
-              // 分层终止策略：先温和，后强制
-              logger.info(`尝试温和终止进程 ${child.pid}`);
-              child.kill("SIGTERM");
+            // 分层终止策略：先温和，后强制
+            logger.info(`Kill ${pid} using SIGTERM`);
+            process.kill(pid, "SIGTERM");
 
-              // 等待 5 秒，如果进程还没有结束，则强制杀死
-              setTimeout(() => {
-                if (child.exitCode === null) {
-                  logger.warn(`强制杀死进程 ${child.pid}`);
-                  child.kill("SIGKILL");
-                  // 最后将进程设置为失败
-                  setTimeout(() => {
-                    job.moveToFailed(new Error("Force Kill"), job.id!);
-                  }, 5001);
-                }
-              }, 5000);
-            } else {
-              setTimeout(() => {
-                job.moveToFailed(new Error("Force Kill"), job.id!);
-              }, 5001);
-            }
+            // 等待 5 秒，如果进程还没有结束，则强制杀死
+            setTimeout(() => {
+              try {
+                process.kill(pid, "SIGKILL");
+              } finally {
+                setTimeout(() => {
+                  job.moveToFailed(new Error("Force Kill"), job.id!);
+                }, 5001);
+                jobCancelerMap.delete(getCurrentWorkerJobKey(account, job.id!));
+              }
+            }, 5000);
           }
         );
 
